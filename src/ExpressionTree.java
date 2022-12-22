@@ -1,7 +1,9 @@
+import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Stack;
+
 
 public class ExpressionTree {
 
@@ -9,14 +11,67 @@ public class ExpressionTree {
 
     private Node<Token> root;
 
+    private static Map<Integer, Type> digitMap = Map.of(
+        0, Type.ZERO,
+        1, Type.ONE,
+        2, Type.TWO,
+        3, Type.THREE,
+        4, Type.FOUR,
+        5, Type.FIVE,
+        6, Type.SIX,
+        7, Type.SEVEN,
+        8, Type.EIGHT,
+        9, Type.NINE
+    );
+
+    private static Map<String, Type> unaryOperationMap = Map.ofEntries(
+        Map.entry("sin", Type.SIN),
+        Map.entry("cos", Type.COS),
+        Map.entry("tan", Type.TAN),
+        Map.entry("asin", Type.ASIN),
+        Map.entry("acos", Type.ACOS),
+        Map.entry("atan", Type.ATAN),
+        Map.entry("sinh", Type.SINH),
+        Map.entry("cosh", Type.COSH),
+        Map.entry("tanh", Type.TANH),
+        Map.entry("sqrt", Type.SQRT),
+        Map.entry("cbrt", Type.CBRT),
+        Map.entry("log", Type.LOG),
+        Map.entry("ln", Type.LN)
+    );
+
+    private static Map<Character, Type> binaryOperationMap = Map.of(
+        '+', Type.ADDITION,
+        '-', Type.SUBTRACTION,
+        '*', Type.MULTIPLICATION,
+        '/', Type.DIVISION,
+        '^', Type.EXP
+    );
+
+    
+
     private static final char X_VARIABLE = 'x';
 
     private enum Type {
-        ADDITION, SUBTRACTION, MULTIPLICATION, DIVISION,
-        EXP, SQRT,
-        OPERAND, VARIABLE,
+        // Digits
+        ZERO, ONE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE,
+        // Binary Operations
+        ADDITION, SUBTRACTION, MULTIPLICATION, DIVISION, EXP,
+        // Unary Operations
+        SIN, COS, TAN, 
+        ASIN, ACOS, ATAN, 
+        SINH, COSH, TANH,
+        SQRT, CBRT,
+        LOG, LN,
+        // Constants
+        PI, E,
+        // Other
         OPEN_PARENTHESIS, CLOSE_PARENTHESIS,
-        SIN, COS, TAN
+        DECIMAL, VARIABLE, SPACE
+    }
+
+    private interface Evaluatable {
+        public double evaluate(double x, double y);
     }
 
     private static class Token {
@@ -38,9 +93,6 @@ public class ExpressionTree {
                   type == ExpressionTree.Type.EXP;
         }
 
-        public boolean isOperand() {
-            return type == ExpressionTree.Type.OPERAND;
-        }
     }
 
     /**
@@ -60,8 +112,6 @@ public class ExpressionTree {
             this.left = left;
             this.right = right;
         }
-
-
     }
 
     public ExpressionTree(String infixExpression) {
@@ -79,46 +129,61 @@ public class ExpressionTree {
         ArrayList<Token> tokens = new ArrayList<>();
         Stack<Token> stack = new Stack<>();
         boolean hasCoeff = false;
-        boolean isDone = false;
-        String operand = "";
-        
+  
         for (int i = 0; i < infix.length(); i++) {
             char curChar = infix.charAt(i);
 
             // empty space
             if (curChar == ' ') {
                 continue;
-            // variable, sqrt, or sin, cos, tan
-            } else if (Character.isLetter(curChar)) {
+            
+            // variable
+            } else if(curChar == 'x') { 
                 if (hasCoeff) {
                     stack.push(new Token(Type.MULTIPLICATION, "*"));
                     hasCoeff = false;
                 }
                 tokens.add(new Token(Type.VARIABLE, String.valueOf(curChar)));
-            // operand
-            } else if (Character.isDigit(curChar)) {
-                operand += curChar;
-                if (i + 1 < infix.length()) {
-                    // if next element is a digit, not finished
-                    if (Character.isDigit(infix.charAt(i + 1))) {
-                        isDone = false;
-                    // if next element is a variable, then there is a coefficient, finished
-                    } else if (Character.isLetter(infix.charAt(i + 1))) {
-                        hasCoeff = true;
-                        isDone = true;
-                    // next element operand, finished
-                    } else {
-                        isDone = true;
-                    }
-                }
+
+            // unary operation
+            } else if (Character.isLetter(curChar) && (curChar != 'x')) {
+                Type curType;
+                String value = infix.substring(i, i + 3);
                 
-                if (isDone) {    
-                    tokens.add(new Token(Type.OPERAND, operand));
-                    operand = "";
-                } 
+                if (unaryOperationMap.containsKey(value)) {
+                    curType = unaryOperationMap.get(value);
+                    i += 2;
+                } else {
+                    value = infix.substring(i, i + 4);
+                    if (!unaryOperationMap.containsKey(value))
+                        throw new IllegalArgumentException("Unknown unary operation: \"" + value + "\"");
+                    curType = unaryOperationMap.get(value);
+                    i += 3;
+                }
+                tokens.add(new Token(curType, value));
+                
+            // digit or decimal
+            } else if (Character.isDigit(curChar)) {
+                boolean seperator = false;
+                if (i + 1 < infix.length()) {
+                    // next character is a variable, this digit is a coefficient
+                    if (infix.charAt(i + 1) == 'x') {
+                        hasCoeff = true;
+                    // next character is not a digit or decimal, seperator added to distinguish multi-digit numbers
+                    } else if (!Character.isDigit(infix.charAt(i + 1)) && infix.charAt(i + 1) != '.') {
+                        seperator = true;
+                    }
+                        
+                }
+                Type curType = digitMap.get(Character.getNumericValue(curChar));
+                tokens.add(new Token(curType, String.valueOf(curChar)));     
+                if (seperator)
+                    tokens.add(new Token(Type.SPACE, " "));
+
             // open parenthesis
             } else if (curChar == '(') {
                 stack.push(new Token(Type.OPEN_PARENTHESIS, "("));
+
             // close parenthesis
             } else if (curChar == ')') {
                 while (!stack.isEmpty() && 
@@ -127,29 +192,14 @@ public class ExpressionTree {
                     stack.pop();
                 }
                 stack.pop();
-            // operator
+
+            // decimal    
+            } else if (curChar == '.') {
+                tokens.add(new Token(Type.DECIMAL, "."));
+
+            // binary operation
             } else {
-                Type curType;
-                switch(curChar) {
-                    case '+':
-                        curType = Type.ADDITION;
-                        break;
-                    case '-':
-                        curType = Type.SUBTRACTION;
-                        break;
-                    case '*':
-                        curType = Type.MULTIPLICATION;
-                        break;
-                    case '/':
-                        curType = Type.DIVISION;
-                        break;
-                    case '^':
-                        curType = Type.EXP;
-                        break;
-                    default:
-                        throw new IllegalArgumentException("Unknown Character");
-                }
-                
+                Type curType = binaryOperationMap.get(curChar);
                 while (!stack.isEmpty() && 
                         precedence(curType) <= precedence(stack.peek().type)) {
                     tokens.add(stack.peek());
@@ -190,9 +240,8 @@ public class ExpressionTree {
     }
 
 
-
     /**
-     * Helpers method for parseInfix() which determines the precence of certain operators.
+     * Helpers method for parseInfix which determines the precence of certain operators.
      * 
      * @param c
      * @return precedence
@@ -214,7 +263,7 @@ public class ExpressionTree {
     public String toString() {
         String ret = "";
         for (Token t : tokens) {
-            ret += t.value + " ";
+            ret += t.value;
         }
 
         return ret;
