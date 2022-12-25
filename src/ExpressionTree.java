@@ -1,16 +1,19 @@
-import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
 
-
 public class ExpressionTree {
 
+    /**
+     * A list of Token objects
+     */
     private ArrayList<Token> tokens;
 
     private Node<Token> root;
 
+    /**
+     * Maps digits 0-9 to its respective type.
+     */
     private static Map<Integer, Type> digitMap = Map.of(
         0, Type.ZERO,
         1, Type.ONE,
@@ -24,7 +27,10 @@ public class ExpressionTree {
         9, Type.NINE
     );
 
-    private static Map<String, Type> unaryOperationMap = Map.ofEntries(
+    /**
+     * Maps a string of a unary function to its respective type.
+     */
+    private static Map<String, Type> unaryFunctionMap = Map.ofEntries(
         Map.entry("sin", Type.SIN),
         Map.entry("cos", Type.COS),
         Map.entry("tan", Type.TAN),
@@ -40,6 +46,9 @@ public class ExpressionTree {
         Map.entry("ln", Type.LN)
     );
 
+    /**
+     * Maps a binary operation to its respective type.
+     */
     private static Map<Character, Type> binaryOperationMap = Map.of(
         '+', Type.ADDITION,
         '-', Type.SUBTRACTION,
@@ -48,16 +57,42 @@ public class ExpressionTree {
         '^', Type.EXP
     );
 
-    
+    /**
+     * Maps the type of a token to its respective mathematical operation/function.
+     */
+    private static Map<Type, Evaluable> functionMap = Map.ofEntries(
+        Map.entry(Type.ADDITION,       (double x, double y) -> { return x + y; }),
+        Map.entry(Type.SUBTRACTION,    (double x, double y) -> { return x - y; }),
+        Map.entry(Type.MULTIPLICATION, (double x, double y) -> { return x * y; }),
+        Map.entry(Type.DIVISION,       (double x, double y) -> { return x / y; }),
+        Map.entry(Type.EXP,            (double x, double y) -> { return Math.pow(x, y); }),
+        Map.entry(Type.SIN,            (double x, double y) -> { return Math.sin(x); }),
+        Map.entry(Type.COS,            (double x, double y) -> { return Math.cos(x); }),
+        Map.entry(Type.TAN,            (double x, double y) -> { return Math.sin(x); }),
+        Map.entry(Type.ASIN,           (double x, double y) -> { return Math.asin(x); }),
+        Map.entry(Type.ACOS,           (double x, double y) -> { return Math.acos(x); }),
+        Map.entry(Type.ATAN,           (double x, double y) -> { return Math.atan(x); }),
+        Map.entry(Type.SINH,           (double x, double y) -> { return Math.sinh(x); }),
+        Map.entry(Type.COSH,           (double x, double y) -> { return Math.cosh(x); }),
+        Map.entry(Type.TANH,           (double x, double y) -> { return Math.tanh(x); }),
+        Map.entry(Type.SQRT,           (double x, double y) -> { return Math.sqrt(x); }),
+        Map.entry(Type.CBRT,           (double x, double y) -> { return Math.cbrt(x); }),
+        Map.entry(Type.LOG,            (double x, double y) -> { return Math.log10(x); }),
+        Map.entry(Type.LN,             (double x, double y) -> { return Math.log(x); })
+    );
 
     private static final char X_VARIABLE = 'x';
+
+    private static interface Evaluable {
+        public double evaluate(double x, double y);
+    }
 
     private enum Type {
         // Digits
         ZERO, ONE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE,
         // Binary Operations
         ADDITION, SUBTRACTION, MULTIPLICATION, DIVISION, EXP,
-        // Unary Operations
+        // Unary Functions
         SIN, COS, TAN, 
         ASIN, ACOS, ATAN, 
         SINH, COSH, TANH,
@@ -67,22 +102,21 @@ public class ExpressionTree {
         PI, E,
         // Other
         OPEN_PARENTHESIS, CLOSE_PARENTHESIS,
-        DECIMAL, VARIABLE, SPACE
-    }
-
-    private interface Evaluatable {
-        public double evaluate(double x, double y);
+        OPERAND, VARIABLE, DECIMAL, SPACE
     }
 
     private static class Token {
 
         public Type type;
 
-        public String value;
+        public Double value;
 
-        public Token(Type type, String value) {
+        public String show;
+
+        public Token(Type type, Double value, String show) {
             this.type = type;
             this.value = value;
+            this.show = show;
         }
 
         public boolean isOperator() {
@@ -92,7 +126,6 @@ public class ExpressionTree {
                   type == ExpressionTree.Type.DIVISION ||
                   type == ExpressionTree.Type.EXP;
         }
-
     }
 
     /**
@@ -138,51 +171,55 @@ public class ExpressionTree {
                 continue;
             
             // variable
-            } else if(curChar == 'x') { 
+            } else if(curChar == X_VARIABLE) { 
                 if (hasCoeff) {
-                    stack.push(new Token(Type.MULTIPLICATION, "*"));
+                    stack.push(new Token(Type.MULTIPLICATION, null, "*"));
                     hasCoeff = false;
                 }
-                tokens.add(new Token(Type.VARIABLE, String.valueOf(curChar)));
+                tokens.add(new Token(Type.VARIABLE, null, String.valueOf(curChar)));
 
-            // unary operation
-            } else if (Character.isLetter(curChar) && (curChar != 'x')) {
+            // unary function
+            } else if (Character.isLetter(curChar) && (curChar != X_VARIABLE)) {
                 Type curType;
-                String value = infix.substring(i, i + 3);
-                
-                if (unaryOperationMap.containsKey(value)) {
-                    curType = unaryOperationMap.get(value);
+                String show;
+
+                if (infix.substring(i, i + 2) == "ln") {
+                    curType = Type.LN;
+                    show = "ln";
+                    i += 1;
+                } else if (unaryFunctionMap.containsKey(infix.substring(i, i + 3))) {
+                    curType = unaryFunctionMap.get(infix.substring(i, i + 3));
+                    show = infix.substring(i, i + 3);
                     i += 2;
                 } else {
-                    value = infix.substring(i, i + 4);
-                    if (!unaryOperationMap.containsKey(value))
-                        throw new IllegalArgumentException("Unknown unary operation: \"" + value + "\"");
-                    curType = unaryOperationMap.get(value);
+                    curType = unaryFunctionMap.get(infix.substring(i, i + 4));
+                    show = infix.substring(i, i + 4);
                     i += 3;
                 }
-                tokens.add(new Token(curType, value));
+                
+                tokens.add(new Token(curType, null, show));
                 
             // digit or decimal
             } else if (Character.isDigit(curChar)) {
                 boolean seperator = false;
                 if (i + 1 < infix.length()) {
                     // next character is a variable, this digit is a coefficient
-                    if (infix.charAt(i + 1) == 'x') {
+                    if (infix.charAt(i + 1) == X_VARIABLE) {
                         hasCoeff = true;
                     // next character is not a digit or decimal, seperator added to distinguish multi-digit numbers
                     } else if (!Character.isDigit(infix.charAt(i + 1)) && infix.charAt(i + 1) != '.') {
                         seperator = true;
                     }
-                        
                 }
-                Type curType = digitMap.get(Character.getNumericValue(curChar));
-                tokens.add(new Token(curType, String.valueOf(curChar)));     
+                int val = Character.getNumericValue(curChar);
+                Type curType = digitMap.get(val);
+                tokens.add(new Token(curType, (double) val, String.valueOf(curChar)));     
                 if (seperator)
-                    tokens.add(new Token(Type.SPACE, " "));
+                    tokens.add(new Token(Type.SPACE, null, " "));
 
             // open parenthesis
             } else if (curChar == '(') {
-                stack.push(new Token(Type.OPEN_PARENTHESIS, "("));
+                stack.push(new Token(Type.OPEN_PARENTHESIS, null, "("));
 
             // close parenthesis
             } else if (curChar == ')') {
@@ -195,9 +232,21 @@ public class ExpressionTree {
 
             // decimal    
             } else if (curChar == '.') {
-                tokens.add(new Token(Type.DECIMAL, "."));
+                tokens.add(new Token(Type.DECIMAL, null, "."));
 
-            // binary operation
+            // euler's constant
+            } else if (curChar == 'e') {
+                tokens.add(new Token(Type.E, Math.E, "e"));
+            
+            // pi
+            } else if (curChar == 'P') {
+                if (i + 1 < infix.length()) {
+                    if (infix.charAt(i + 1) == 'I') {
+                        tokens.add(new Token(Type.PI, Math.PI, "PI"));
+                    }
+                }
+
+            // binary operator
             } else {
                 Type curType = binaryOperationMap.get(curChar);
                 while (!stack.isEmpty() && 
@@ -205,7 +254,7 @@ public class ExpressionTree {
                     tokens.add(stack.peek());
                     stack.pop();
                 }
-                stack.push(new Token(curType, String.valueOf(curChar)));
+                stack.push(new Token(curType, null, String.valueOf(curChar)));
             }
         }
 
@@ -221,7 +270,7 @@ public class ExpressionTree {
 
     /**
      * Creates an expression tree from a list of tokens.
-     * 
+     * TODO: Fix build with space token and multi-digit numbers
      * @param tokens
      * @return root node
      */
@@ -263,9 +312,10 @@ public class ExpressionTree {
     public String toString() {
         String ret = "";
         for (Token t : tokens) {
-            ret += t.value;
+            ret += t.show;
         }
 
         return ret;
     }
+
 }
