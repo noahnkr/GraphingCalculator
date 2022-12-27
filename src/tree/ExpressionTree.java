@@ -1,3 +1,6 @@
+package tree;
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Map;
@@ -155,6 +158,10 @@ public class ExpressionTree {
             return digitMap.containsValue(type) || type == Type.OPERAND;
         }
 
+        public boolean isVaraible() {
+            return type == Type.VARIABLE;
+        }
+
         public boolean isEvaluable() {
             return isOperator() || isFunction();
         }
@@ -183,6 +190,10 @@ public class ExpressionTree {
         public Node(Token token) {
             this(token, null, null);
         }
+
+        public boolean isLeaf() {
+            return left == null && right == null;
+        }
     }
 
     public ExpressionTree(String infixExpression) {
@@ -197,6 +208,42 @@ public class ExpressionTree {
         }
 
         root = buildTree(tokens);
+    }
+
+    
+    public double solve() {
+        DecimalFormat df = new DecimalFormat("#.###");
+        return Double.valueOf(df.format(solveRec(root, 0)));
+        
+    }
+
+    public double solve(double x) {
+        DecimalFormat df = new DecimalFormat("#.###");
+        return Double.valueOf(df.format(solveRec(root, x)));
+    }
+
+    private double solveRec(Node<Token> node, double x) {
+        if (node.token.isOperand())
+            return node.token.value;
+        
+        if (node.token.isOperator()) {
+            return evaluateMap.get(node.token.type)
+                              .evaluate(
+                               solveRec(node.left, x), 
+                               solveRec(node.right, x));
+        }
+
+        if (node.token.isFunction()) {
+            return evaluateMap.get(node.token.type)
+                              .evaluate(
+                               solveRec(node.left, x), 0);
+        }
+
+        if (node.token.type == Type.VARIABLE) {
+            return x;
+        }
+
+        throw new IllegalArgumentException("Unknow operation or function");
     }
 
     /**
@@ -253,7 +300,7 @@ public class ExpressionTree {
                 i += j - 1;
                 functionParenthesis = true;
 
-            // digit or decimal
+            // digit
             } else if (Character.isDigit(curChar)) {
                 boolean seperator = false;
                 if (i + 1 < infix.length()) {
@@ -268,8 +315,9 @@ public class ExpressionTree {
                 int val = Character.getNumericValue(curChar);
                 Type curType = digitMap.get(val);
                 tokens.add(new Token(curType, (double) val, null, String.valueOf(curChar)));
+
                 if (functionParenthesis)
-                    sublist.add(new Token(Type.VARIABLE, null, null, String.valueOf(curChar)));
+                    sublist.add(new Token(curType, (double) val, null, String.valueOf(curChar)));
 
                 if (seperator) {
                     tokens.add(new Token(Type.SPACE, null, null, " "));
@@ -393,12 +441,13 @@ public class ExpressionTree {
      */
     public static Node<Token> buildTree(ArrayList<Token> tokens) {
         Stack<Node<Token>> stack = new Stack<>();
+
         for (int i = 0; i < tokens.size(); i++) {
             Token t = tokens.get(i);
             if (!t.isOperator() && !t.isFunction()) {
-                stack.push(new Node(t));
+                stack.push(new Node<Token>(t));
             } else if (t.isFunction()) {
-                stack.push(new Node(t, buildTree(t.partial), null));
+                stack.push(new Node<Token>(t, buildTree(t.partial), null));
                 i += t.partial.size();
             } else {
                 Node<Token> newNode = new Node<>(t);
@@ -407,6 +456,7 @@ public class ExpressionTree {
                 stack.push(newNode);
             }
         }
+
         return stack.pop();
     }
 
@@ -430,37 +480,67 @@ public class ExpressionTree {
     }
 
     /**
-     * Performs a level order traversal of this expression tree.
-     * 
-     * @param root
-     */
-    public void levelOrderTraversal(Node<Token> root) {
-        Queue<Node> queue = new LinkedList<Node>();
-        queue.add(root);
-
-        while (!queue.isEmpty()) {
-            Node current = queue.remove();
-            printNode(current);
-            if (current.left != null) 
-                queue.add(current.left);
-                
-            if (current.right != null) 
-                queue.add(current.right);
-        }
-    }
-
-    /**
      * Returns a string representation of the tokens in this array 
      * in a postfix order.
      * 
      * @return string
      */
-    public String toString() {
+    public String printTokens() {
         String ret = "";
         for (Token t : tokens) 
             ret += t.show + " ";
 
         return ret;
     }
+
+    private String traversePreOrder(Node<Token> root) {
+        if (root == null) {
+            return "";
+        }
+    
+        StringBuilder sb = new StringBuilder();
+        sb.append(root.token.show);
+    
+        String pointerRight = "└──";
+        String pointerLeft = (root.right != null) ? "├──" : "└──";
+    
+        traverseNodes(sb, "", pointerLeft, root.left, root.right != null);
+        traverseNodes(sb, "", pointerRight, root.right, false);
+    
+        return sb.toString();
+    }
+
+    private void traverseNodes(StringBuilder sb, String padding, String pointer, 
+                               Node<Token> node, boolean hasRightSibling) {
+        if (node != null) {
+            sb.append("\n");
+            sb.append(padding);
+            sb.append(pointer);
+            sb.append(node.token.show);
+
+            StringBuilder paddingBuilder = new StringBuilder(padding);
+            if (hasRightSibling) {
+                paddingBuilder.append("│  ");
+            } else {
+                paddingBuilder.append("   ");
+            }
+
+            String paddingForBoth = paddingBuilder.toString();
+            String pointerRight = "└──";
+            String pointerLeft = (node.right != null) ? "├──" : "└──";
+
+            traverseNodes(sb, paddingForBoth, pointerLeft, node.left, node.right != null);
+            traverseNodes(sb, paddingForBoth, pointerRight, node.right, false);
+        }
+    }
+
+    /**
+     * 
+     */
+    public String toString() {
+        return traversePreOrder(root);
+    }
+    
+    
 
 }
