@@ -1,7 +1,8 @@
 public class Main {
     public static void main(String[] args) {
-        ExpressionTree t = new ExpressionTree("x^5)");
-        System.out.println(t.toString());
+        String expression = "sin(5x) + 4";
+        ExpressionTree t = new ExpressionTree(expression);
+        t.levelOrderTraversal(t.getRoot());
     }
     
 }
