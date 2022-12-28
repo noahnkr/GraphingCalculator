@@ -1,13 +1,33 @@
 package tree;
-import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Stack;
 
+/**
+ * This is a class representing an expression tree which is based from an input 
+ * infix expression. The infix expression is first lexicalyanalyzed and broken 
+ * up into a list of tokens that are easier to manipulate. The tokens can either 
+ * be an operand, operator, function, variable, or constant. The list of tokens is 
+ * transformed into postfix format which is used to build the expression tree. If 
+ * there is a variable then the function can be evaluated to a double to three 
+ * decimal points based on a  given x value. 
+ * 
+ * @author Noah Roberts
+ * @version v2.2.2
+ * 
+ */
 public class ExpressionTree {
+
+    /**
+     * Root node of this expression tree.
+     */
+    private Node<Token> root;
+
+    /* 
+     *  Original infix expression used for building the expression tree.
+     */
+    private String infix;
 
     /**
      * A list of Token objects.
@@ -19,10 +39,6 @@ public class ExpressionTree {
      */
     private static final char X_VARIABLE = 'x';
 
-    /**
-     * Root node of this expression tree.
-     */
-    private Node<Token> root;
 
     /**
      * Maps digits 0-9 to its respective type.
@@ -131,14 +147,29 @@ public class ExpressionTree {
      */
     private static class Token {
 
+        /**
+         * The type of this token
+         */
         public Type type;
 
+        /**
+         * If this Token is an operand, constant, or variable, it is equal to the numeric value 
+         * of the token. Otherwise null, which is why double object instead of primitive type.
+         */
         public Double value;
 
+        /**
+         * If this Token is a function it holds references to a list of tokens
+         * associated with it, otherwise null.
+         */
         public ArrayList<Token> partial;
 
+        /**
+         * This token represented in string format.
+         */
         public String show;
 
+        
         public Token(Type type, Double value, ArrayList<Token> partial, String show) {
             this.type = type;
             this.value = value;
@@ -158,15 +189,9 @@ public class ExpressionTree {
             return digitMap.containsValue(type) || type == Type.OPERAND;
         }
 
-        public boolean isVaraible() {
-            return type == Type.VARIABLE;
+        public boolean isConstant() {
+            return type == Type.PI || type == Type.E;
         }
-
-        public boolean isEvaluable() {
-            return isOperator() || isFunction();
-        }
-
-        
     }
 
     /**
@@ -196,17 +221,14 @@ public class ExpressionTree {
         }
     }
 
-    public ExpressionTree(String infixExpression) {
-        tokens = parseInfix(infixExpression);
+    /**
+     * Creates a new expression tree based off an infix expression.
+     * @param infix
+     */
+    public ExpressionTree(String infix) {
+        this.infix = infix;
+        tokens = parseInfix(infix);
         concatenateExpression(tokens);
-
-        // concatenates expression of each function's partial array 
-        for (int i = 0; i < tokens.size(); i++) {
-            Token t = tokens.get(i);
-            if (t.isFunction()) 
-                concatenateExpression(t.partial);
-        }
-
         root = buildTree(tokens);
     }
 
@@ -223,7 +245,7 @@ public class ExpressionTree {
     }
 
     private double solveRec(Node<Token> node, double x) {
-        if (node.token.isOperand())
+        if (node.token.isOperand() || node.token.isConstant())
             return node.token.value;
         
         if (node.token.isOperator()) {
@@ -255,11 +277,10 @@ public class ExpressionTree {
      */
     public static ArrayList<Token> parseInfix(String infix) {
         ArrayList<Token> tokens = new ArrayList<>();
+        ArrayList<Token> subtokens = new ArrayList<>();
         Stack<Token> stack = new Stack<>();
-        ArrayList<Token> sublist = new ArrayList<>();
-        boolean functionParenthesis = false;
         boolean hasCoeff = false;
-  
+
         for (int i = 0; i < infix.length(); i++) {
             char curChar = infix.charAt(i);
 
@@ -273,32 +294,32 @@ public class ExpressionTree {
                     stack.push(new Token(Type.MULTIPLICATION, null, null, "*"));
                     hasCoeff = false;
                 }
-                tokens.add(new Token(Type.VARIABLE, null, null, String.valueOf(curChar)));
 
-                if (functionParenthesis)
-                    sublist.add(new Token(Type.VARIABLE, null, null, String.valueOf(curChar)));
+                tokens.add(new Token(Type.VARIABLE, null, null, String.valueOf(curChar)));
+                subtokens.add(new Token(Type.VARIABLE, null, null, String.valueOf(curChar)));
 
             // unary function
-            } else if (Character.isLetter(curChar) && (curChar != X_VARIABLE)
-                                                   && (curChar != 'e')
+            } else if (Character.isLetter(curChar) && (curChar != X_VARIABLE)                    // x
+                                                   && (curChar != 'e')                           // e
+                                                   && (curChar != 'p' && infix.charAt(i) != 'i') // pi
                                                    ) {
-                Type curType;
                 int j = 2; // set to 2 because shortest possible key name is "ln"
                 String show = infix.substring(i, i + j);
                 
                 while (!functionMap.containsKey(show)) {
                     j++;
                     show = infix.substring(i, i + j);
-                    
+                     
                     // longest possible length of key is 4
                     if (j > 4)
                         throw new IllegalArgumentException("Unknwon function: \"" + show + "\"");
                 }
 
                 // contains this key!
-                tokens.add(new Token(functionMap.get(show), null, sublist, show));
+                Token newToken = new Token(functionMap.get(show), null, null, show);
+                tokens.add(newToken);
+                stack.push(newToken);
                 i += j - 1;
-                functionParenthesis = true;
 
             // digit
             } else if (Character.isDigit(curChar)) {
@@ -315,13 +336,11 @@ public class ExpressionTree {
                 int val = Character.getNumericValue(curChar);
                 Type curType = digitMap.get(val);
                 tokens.add(new Token(curType, (double) val, null, String.valueOf(curChar)));
-
-                if (functionParenthesis)
-                    sublist.add(new Token(curType, (double) val, null, String.valueOf(curChar)));
+                subtokens.add(new Token(curType, (double) val, null, String.valueOf(curChar)));
 
                 if (seperator) {
                     tokens.add(new Token(Type.SPACE, null, null, " "));
-                    sublist.add(new Token(Type.SPACE, null, null, " "));
+                    subtokens.add(new Token(Type.SPACE, null, null, " "));
                 }
                     
             // open parenthesis
@@ -332,35 +351,40 @@ public class ExpressionTree {
             } else if (curChar == ')') {
                 while (!stack.isEmpty() && 
                         stack.peek().type != Type.OPEN_PARENTHESIS) {
-                    tokens.add(stack.peek());
-                    if (functionParenthesis) {
-                            sublist.add(stack.peek());
-                    }
-                            
-                    stack.pop();
+                    tokens.add(stack.peek()); 
+                    subtokens.add(stack.pop());
                 }
                 stack.pop();
-                if (functionParenthesis)
-                    functionParenthesis = false;
+
+                if (stack.peek().isFunction()) {
+                    stack.peek().partial = duplicateTokens(subtokens);
+                    subtokens.add(0, stack.pop());
+                }
 
             // decimal    
             } else if (curChar == '.') {
                 tokens.add(new Token(Type.DECIMAL, null, null, "."));
+                subtokens.add(new Token(Type.E, Math.E, null, "e"));
 
             // euler's constant
             } else if (curChar == 'e') {
                 tokens.add(new Token(Type.E, Math.E, null, "e"));
+                subtokens.add(new Token(Type.E, Math.E, null, "e")); 
             
             // pi
             } else if (curChar == 'p' && (infix.charAt(i + 1) == 'i')) {
-                tokens.add(new Token(Type.PI, Math.PI, null, "PI"));
+                tokens.add(new Token(Type.PI, Math.PI, null, "pi"));
+                subtokens.add(new Token(Type.PI, Math.PI, null, "pi"));
+                i++;
                     
             // binary operator
             } else {
-                Type curType = operatorMap.get(curChar);
+                Type curType = operatorMap.get(curChar); 
                 while (!stack.isEmpty() && 
                         precedence(curType) <= precedence(stack.peek().type)) {
                     tokens.add(stack.peek());
+                    subtokens.add(stack.peek());
+                    
                     stack.pop();
                 }
                 stack.push(new Token(curType, null, null, String.valueOf(curChar)));
@@ -371,6 +395,7 @@ public class ExpressionTree {
         while (!stack.isEmpty()) {
             if (stack.peek().type == Type.OPEN_PARENTHESIS)
                 throw new IllegalArgumentException("Invalid Expression Format");
+
             tokens.add(stack.pop());
         }
 
@@ -383,6 +408,9 @@ public class ExpressionTree {
      * @param tokens
      */
     public static void concatenateExpression(ArrayList<Token> tokens) {
+        if (isCondensed(tokens))
+            return;
+
         String newDigit = "";
         // combines tokens that logically read as a multi-digit number or decimal into a single token
         for (int i = 0; i < tokens.size(); i++) {
@@ -411,6 +439,13 @@ public class ExpressionTree {
             if (tokens.get(i).type == Type.SPACE)
                 tokens.remove(i);
         }
+
+        // recursively perform this operation on each subtokens associated with the function
+        for (int i = 0; i < tokens.size(); i++) {
+            if (tokens.get(i).isFunction())
+                concatenateExpression(tokens.get(i).partial);
+        }
+        
     }
 
     /**
@@ -443,7 +478,7 @@ public class ExpressionTree {
         Stack<Node<Token>> stack = new Stack<>();
 
         for (int i = 0; i < tokens.size(); i++) {
-            Token t = tokens.get(i);
+            Token t = tokens.get(i); 
             if (!t.isOperator() && !t.isFunction()) {
                 stack.push(new Node<Token>(t));
             } else if (t.isFunction()) {
@@ -480,6 +515,31 @@ public class ExpressionTree {
     }
 
     /**
+     * Returns infix expression this tree is build on.
+     * 
+     * @return infix
+     */
+    public String getInfix() {
+        return infix;
+    }
+
+    /**
+     * This list of tokens is condensed if it does not contain spaces,
+     * otherwise it is not condesed.
+     * 
+     * @param tokens
+     * @return true or false
+     */
+    public static boolean isCondensed(ArrayList<Token> tokens) {
+        for (int i = 0; i < tokens.size(); i++) {
+            if (tokens.get(i).type == Type.SPACE)
+                return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Returns a string representation of the tokens in this array 
      * in a postfix order.
      * 
@@ -491,6 +551,23 @@ public class ExpressionTree {
             ret += t.show + " ";
 
         return ret;
+    }
+
+    public static ArrayList<Token> duplicateTokens(ArrayList<Token> tokens) {
+        ArrayList<Token> ret = new ArrayList<>();
+        for (Token t : tokens) {
+            ret.add(t);
+        }
+
+        return ret;
+    }
+
+    
+    /**
+     * Displays the strucure of this expression tree by traversing preorder.
+     */
+    public String toString() {
+        return traversePreOrder(root);
     }
 
     private String traversePreOrder(Node<Token> root) {
@@ -532,13 +609,6 @@ public class ExpressionTree {
             traverseNodes(sb, paddingForBoth, pointerLeft, node.left, node.right != null);
             traverseNodes(sb, paddingForBoth, pointerRight, node.right, false);
         }
-    }
-
-    /**
-     * 
-     */
-    public String toString() {
-        return traversePreOrder(root);
     }
     
     
