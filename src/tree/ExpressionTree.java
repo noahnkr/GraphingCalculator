@@ -6,12 +6,12 @@ import java.util.Stack;
 
 /**
  * This is a class representing an expression tree which is based from an input 
- * infix expression. The infix expression is first lexicalyanalyzed and broken 
- * up into a list of tokens that are easier to manipulate. The tokens can either 
- * be an operand, operator, function, variable, or constant. The list of tokens is 
- * transformed into postfix format which is used to build the expression tree. If 
- * there is a variable then the function can be evaluated to a double to three 
- * decimal points based on a  given x value. 
+ * infix expression. The infix expression is first lexicaly analyzed and broken 
+ * into a list of tokens that are easier to manipulate. The tokens can either be 
+ * an operand, operator, function, variable, constant, or parenthesis. The list of 
+ * tokens is transformed into postfix format which is used to build the expression 
+ * tree. Then the function can be evaluated to a double up to three decimal places. 
+ * It also can take an input double if the expression tree contains a variable.
  * 
  * @author Noah Roberts
  * @version v2.2.2
@@ -72,7 +72,8 @@ public class ExpressionTree {
         Map.entry("sqrt", Type.SQRT),
         Map.entry("cbrt", Type.CBRT),
         Map.entry("log", Type.LOG),
-        Map.entry("ln", Type.LN)
+        Map.entry("ln", Type.LN),
+        Map.entry("abs", Type.ABS)
     );
 
     /**
@@ -107,7 +108,8 @@ public class ExpressionTree {
         Map.entry(Type.SQRT,           (double x, double y) -> { return Math.sqrt(x); }),
         Map.entry(Type.CBRT,           (double x, double y) -> { return Math.cbrt(x); }),
         Map.entry(Type.LOG,            (double x, double y) -> { return Math.log10(x); }),
-        Map.entry(Type.LN,             (double x, double y) -> { return Math.log(x); })
+        Map.entry(Type.LN,             (double x, double y) -> { return Math.log(x); }),
+        Map.entry(Type.ABS,            (double x, double y) -> { return Math.abs(x); })
     );
 
     
@@ -133,10 +135,12 @@ public class ExpressionTree {
         SINH, COSH, TANH,
         SQRT, CBRT,
         LOG, LN,
+        ABS,
         // Constants
         PI, E,
         // Other
         OPEN_PARENTHESIS, CLOSE_PARENTHESIS,
+        NEGATIVE, DISTRIBUTIVE_NEGATIVE,
         OPERAND, VARIABLE, DECIMAL, SPACE
     }
 
@@ -234,9 +238,7 @@ public class ExpressionTree {
 
     
     public double solve() {
-        DecimalFormat df = new DecimalFormat("#.###");
-        return Double.valueOf(df.format(solveRec(root, 0)));
-        
+        return solve(0);
     }
 
     public double solve(double x) {
@@ -280,6 +282,7 @@ public class ExpressionTree {
         ArrayList<Token> subtokens = new ArrayList<>();
         Stack<Token> stack = new Stack<>();
         boolean hasCoeff = false;
+        boolean distributeNegative = false;
 
         for (int i = 0; i < infix.length(); i++) {
             char curChar = infix.charAt(i);
@@ -332,6 +335,17 @@ public class ExpressionTree {
                     } else if (!Character.isDigit(infix.charAt(i + 1)) && infix.charAt(i + 1) != '.') {
                         seperator = true;
                     }
+                }  
+                
+                if (i - 1 >= 0) {
+                    if (!Character.isDigit(infix.charAt(i - 1)) && infix.charAt(i - 1) != '-'
+                                                                && distributeNegative) {
+                        tokens.add(new Token(Type.NEGATIVE, null, null, "-"));
+                        subtokens.add(new Token(Type.NEGATIVE, null, null, "-"));
+                    } else if (infix.charAt(i - 1) == '-' && distributeNegative) {
+                        tokens.remove(tokens.size() - 1);
+                        subtokens.remove(subtokens.size() - 1);
+                    }
                 }
                 int val = Character.getNumericValue(curChar);
                 Type curType = digitMap.get(val);
@@ -356,10 +370,12 @@ public class ExpressionTree {
                 }
                 stack.pop();
 
-                if (stack.peek().isFunction()) {
+                if (!stack.isEmpty() && stack.peek().isFunction()) {
                     stack.peek().partial = duplicateTokens(subtokens);
                     subtokens.add(0, stack.pop());
                 }
+
+                distributeNegative = false;
 
             // decimal    
             } else if (curChar == '.') {
@@ -379,16 +395,47 @@ public class ExpressionTree {
                     
             // binary operator
             } else {
-                Type curType = operatorMap.get(curChar); 
-                while (!stack.isEmpty() && 
+                Type curType = operatorMap.get(curChar);
+
+                // negative number
+                if (curType == Type.SUBTRACTION && (Character.isDigit(infix.charAt(i + 1)))) {
+                    tokens.add(new Token(Type.NEGATIVE, null, null, "-"));
+                    subtokens.add(new Token(Type.NEGATIVE, null, null, "-"));
+
+                // coefficient of -1
+                } else if (curType == Type.SUBTRACTION && Character.isLetter(infix.charAt(i + 1))) {
+                    tokens.add(new Token(Type.NEGATIVE, null, null, "-"));
+                    tokens.add(new Token(Type.ONE, 1.0 , null, "1"));
+                    tokens.add(new Token(Type.SPACE, null , null, " "));
+
+                    if ((infix.charAt(i + 1) == 'p' && infix.charAt(i + 2) == 'i') 
+                                                    || infix.charAt(i + 1) == 'e') {
+                        subtokens.add(new Token(Type.NEGATIVE, null, null, "-"));
+                        subtokens.add(new Token(Type.ONE, 1.0 , null, "1"));
+                        subtokens.add(new Token(Type.SPACE, null , null, " "));
+                    }
+                    
+
+                    stack.push(new Token(Type.MULTIPLICATION, null, null, "*"));
+
+                // distrubutive negative
+                } else if (curType == Type.SUBTRACTION && infix.charAt(i + 1) == '(') {
+                    distributeNegative = true;
+                    
+                // operator
+                } else {
+                    while (!stack.isEmpty() && 
                         precedence(curType) <= precedence(stack.peek().type)) {
                     tokens.add(stack.peek());
                     subtokens.add(stack.peek());
-                    
                     stack.pop();
+                    }
+                    stack.push(new Token(curType, null, null, String.valueOf(curChar)));
                 }
-                stack.push(new Token(curType, null, null, String.valueOf(curChar)));
+                
+                
             }
+            
         }
 
         // pop all the operators from the stack
@@ -416,7 +463,7 @@ public class ExpressionTree {
         for (int i = 0; i < tokens.size(); i++) {
             Token t = tokens.get(i);
 
-            if (t.isOperand() || t.type == Type.DECIMAL) {
+            if (t.isOperand() || t.type == Type.DECIMAL || t.type == Type.NEGATIVE) {
                 newDigit += t.show;
 
                 // next token not an operand or decimal, end of digit

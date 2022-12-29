@@ -1,4 +1,5 @@
 package tests;
+
 import tree.*;
 import static org.junit.Assert.fail;
 import org.junit.Test;
@@ -107,7 +108,16 @@ public class OperationTests {
          fail();
    }
 
-   /* ------------------------------ MULTIPLICATION ------------------------------ */
+   @Test
+   public void negativeTest_1() {
+      ExpressionTree t = new ExpressionTree("-(100 - -5)");
+      if (t.solve() != -105.0)
+         fail();
+   }
+
+   /*
+    * ------------------------------ MULTIPLICATION ------------------------------
+    */
 
    @Test
    public void basicbasicMultiplication_SingleDigit() {
@@ -245,7 +255,6 @@ public class OperationTests {
       if (t.solve() != 9765625.0)
          fail();
    }
-
 
    @Test
    public void basicExponent_MultiDigit_Decimal_1() {
