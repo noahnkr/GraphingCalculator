@@ -14,7 +14,7 @@ import java.util.Stack;
  * It also can take an input double if the expression tree contains a variable.
  * 
  * @author Noah Roberts
- * @version v2.2.2
+ * @version v2.2.3
  * 
  */
 public class ExpressionTree {
@@ -25,9 +25,9 @@ public class ExpressionTree {
     private Node<Token> root;
 
     /* 
-     *  Original infix expression used for building the expression tree.
+     *  Expression inputed from user which is used for building the expression tree.
      */
-    private String infix;
+    private String expression;
 
     /**
      * A list of Token objects.
@@ -43,7 +43,7 @@ public class ExpressionTree {
     /**
      * Maps digits 0-9 to its respective type.
      */
-    private static Map<Integer, Type> digitMap = Map.of(
+    private static final Map<Integer, Type> digitMap = Map.of(
         0, Type.ZERO,
         1, Type.ONE,
         2, Type.TWO,
@@ -59,7 +59,7 @@ public class ExpressionTree {
     /**
      * Maps a string of a unary function to its respective type.
      */
-    private static Map<String, Type> functionMap = Map.ofEntries(
+    private static final Map<String, Type> functionMap = Map.ofEntries(
         Map.entry("sin", Type.SIN),
         Map.entry("cos", Type.COS),
         Map.entry("tan", Type.TAN),
@@ -79,7 +79,7 @@ public class ExpressionTree {
     /**
      * Maps a binary operation to its respective type.
      */
-    private static Map<Character, Type> operatorMap = Map.of(
+    private static final Map<Character, Type> operatorMap = Map.of(
         '+', Type.ADDITION,
         '-', Type.SUBTRACTION,
         '*', Type.MULTIPLICATION,
@@ -90,7 +90,7 @@ public class ExpressionTree {
     /**
      * Maps the type of a token to its respective mathematical operation/function.
      */
-    private static Map<Type, Evaluable> evaluateMap = Map.ofEntries(
+    private static final Map<Type, Evaluable> evaluateMap = Map.ofEntries(
         Map.entry(Type.ADDITION,       (double x, double y) -> { return x + y; }),
         Map.entry(Type.SUBTRACTION,    (double x, double y) -> { return x - y; }),
         Map.entry(Type.MULTIPLICATION, (double x, double y) -> { return x * y; }),
@@ -219,20 +219,17 @@ public class ExpressionTree {
         public Node(Token token) {
             this(token, null, null);
         }
-
-        public boolean isLeaf() {
-            return left == null && right == null;
-        }
     }
 
     /**
      * Creates a new expression tree based off an infix expression.
      * @param infix
      */
-    public ExpressionTree(String infix) {
-        this.infix = infix;
-        tokens = parseInfix(infix);
-        concatenateExpression(tokens);
+    public ExpressionTree(String expression) {
+        this.expression = expression;
+        tokens = lex(expression);
+        tokens = infixToPostfix(tokens);
+        condense(tokens);
         root = buildTree(tokens);
     }
 
@@ -271,40 +268,31 @@ public class ExpressionTree {
     }
 
     /**
-     * Performs a lexical analysis of an infix expression and creates an ArrayList of 
-     * tokens in postfix order.
-     * 
+     * Performs a lexical analysis of an infix expression and converts
+     * it into a list of tokens.
      * @param infix
-     * @return postfix list
+     * @return
      */
-    public static ArrayList<Token> parseInfix(String infix) {
+    public static ArrayList<Token> lex(String infix) {
         ArrayList<Token> tokens = new ArrayList<>();
-        ArrayList<Token> subtokens = new ArrayList<>();
-        Stack<Token> stack = new Stack<>();
-        boolean hasCoeff = false;
-        boolean distributeNegative = false;
 
         for (int i = 0; i < infix.length(); i++) {
             char curChar = infix.charAt(i);
 
             // empty space
             if (curChar == ' ') {
-                continue;
-            
-            // variable
-            } else if(curChar == X_VARIABLE) { 
-                if (hasCoeff) {
-                    stack.push(new Token(Type.MULTIPLICATION, null, null, "*"));
-                    hasCoeff = false;
-                }
+                tokens.add(new Token(Type.SPACE, null, null, " "));
 
-                tokens.add(new Token(Type.VARIABLE, null, null, String.valueOf(curChar)));
-                subtokens.add(new Token(Type.VARIABLE, null, null, String.valueOf(curChar)));
+            // digit
+            } else if (Character.isDigit(curChar)) {
+                int val = Character.getNumericValue(curChar);
+                Type curType = digitMap.get(val);
+                tokens.add(new Token(curType, (double) val, null, String.valueOf(curChar)));
 
-            // unary function
-            } else if (Character.isLetter(curChar) && (curChar != X_VARIABLE)                    // x
-                                                   && (curChar != 'e')                           // e
-                                                   && (curChar != 'p' && infix.charAt(i) != 'i') // pi
+            // function
+            } else if (Character.isLetter(curChar) && (curChar != X_VARIABLE)                        // x
+                                                   && (curChar != 'e')                               // e
+                                                   && (curChar != 'p' && infix.charAt(i) != 'i')     // pi
                                                    ) {
                 int j = 2; // set to 2 because shortest possible key name is "ln"
                 String show = infix.substring(i, i + j);
@@ -312,60 +300,168 @@ public class ExpressionTree {
                 while (!functionMap.containsKey(show)) {
                     j++;
                     show = infix.substring(i, i + j);
-                     
+                        
                     // longest possible length of key is 4
                     if (j > 4)
                         throw new IllegalArgumentException("Unknwon function: \"" + show + "\"");
                 }
 
                 // contains this key!
-                Token newToken = new Token(functionMap.get(show), null, null, show);
-                tokens.add(newToken);
-                stack.push(newToken);
+                tokens.add(new Token(functionMap.get(show), null, null, show));
                 i += j - 1;
+            
+            // variable
+            } else if (curChar == X_VARIABLE) {
+                tokens.add(new Token(Type.VARIABLE, null, null, "x"));
 
-            // digit
-            } else if (Character.isDigit(curChar)) {
-                boolean seperator = false;
-                if (i + 1 < infix.length()) {
-                    // next character is a variable, this digit is a coefficient
-                    if (infix.charAt(i + 1) == X_VARIABLE) {
-                        hasCoeff = true;
-                    // next character is not a digit or decimal, seperator added to distinguish multi-digit numbers
-                    } else if (!Character.isDigit(infix.charAt(i + 1)) && infix.charAt(i + 1) != '.') {
-                        seperator = true;
-                    }
-                }  
-                
-                if (i - 1 >= 0) {
-                    if (!Character.isDigit(infix.charAt(i - 1)) && infix.charAt(i - 1) != '-'
-                                                                && distributeNegative) {
-                        tokens.add(new Token(Type.NEGATIVE, null, null, "-"));
-                        subtokens.add(new Token(Type.NEGATIVE, null, null, "-"));
-                    } else if (infix.charAt(i - 1) == '-' && distributeNegative) {
-                        tokens.remove(tokens.size() - 1);
-                        subtokens.remove(subtokens.size() - 1);
-                    }
-                }
-                int val = Character.getNumericValue(curChar);
-                Type curType = digitMap.get(val);
-                tokens.add(new Token(curType, (double) val, null, String.valueOf(curChar)));
-                subtokens.add(new Token(curType, (double) val, null, String.valueOf(curChar)));
-
-                if (seperator) {
-                    tokens.add(new Token(Type.SPACE, null, null, " "));
-                    subtokens.add(new Token(Type.SPACE, null, null, " "));
-                }
-                    
             // open parenthesis
             } else if (curChar == '(') {
+                tokens.add(new Token(Type.OPEN_PARENTHESIS, null, null, "("));
+            // close parenthesis
+            } else if (curChar == ')') {
+                tokens.add(new Token(Type.CLOSE_PARENTHESIS, null, null, ")"));
+            // decimal
+            } else if (curChar == '.') {
+                tokens.add(new Token(Type.DECIMAL, null, null, "."));
+
+            // e
+            } else if (curChar == 'e') {
+                tokens.add(new Token(Type.E, Math.E, null, "e"));
+                  
+            // pi
+            } else if (curChar == 'p' && infix.charAt(i + 1) == 'i') {
+                tokens.add(new Token(Type.PI, Math.PI, null, "pi"));
+                i++;
+            
+            // operator
+            } else {
+                if (operatorMap.containsKey(curChar)) {
+                    Type curType = operatorMap.get(curChar);
+                    tokens.add(new Token(curType, null, null, String.valueOf(curChar)));
+
+                } else {
+                    throw new IllegalArgumentException("Unkown character: \'" + curChar + "\'");
+                }
+            }
+        }
+        
+        return tokens;
+    }
+
+    /**
+     * Takes a list of infix tokens and returns the list in postfix order.
+     * @param infixTokens
+     * @return postfix
+     */
+    public static ArrayList<Token> infixToPostfix(ArrayList<Token> infixTokens) {
+        ArrayList<Token> postfixTokens = new ArrayList<>();
+        ArrayList<Token> subtokens = new ArrayList<>();
+        Stack<Token> stack = new Stack<>();
+        boolean hasCoeff = false;
+
+        for (int i = 0; i < infixTokens.size(); i++) {
+            Token t = infixTokens.get(i);
+
+            // space
+            if (t.type == Type.SPACE) {
+                continue;
+
+            // operand
+            } else if (t.isOperand()) {
+                boolean seperator = false;
+
+                if (i + 1 < infixTokens.size()) {
+                    // next token is either a variable, function, or constant, this digit is a coefficient
+                    if (infixTokens.get(i + 1).type == Type.VARIABLE || infixTokens.get(i + 1).isFunction()
+                                                                     || infixTokens.get(i + 1).isConstant()) {
+                        hasCoeff = true;
+                    } 
+
+                    // next token is not an operand or decimal, seperator added to distinguish multi-digit numbers
+                    if (!infixTokens.get(i + 1).isOperand() && infixTokens.get(i + 1).type != Type.DECIMAL) {
+                        seperator = true;
+                    }
+                }
+
+                postfixTokens.add(t);
+                subtokens.add(t);
+
+                if (seperator) {
+                    postfixTokens.add(new Token(Type.SPACE, null, null, " "));
+                    subtokens.add(new Token(Type.SPACE, null, null, " "));
+                } 
+            
+            // operator
+            } else if (t.isOperator()) {
+
+                // negative number
+                if (t.type == Type.SUBTRACTION && (infixTokens.get(i + 1).isOperand())) {
+                    postfixTokens.add(new Token(Type.NEGATIVE, null, null, "-"));
+                    subtokens.add(new Token(Type.NEGATIVE, null, null, "-"));
+
+                // multiplied by -1
+                } else if (t.type == Type.SUBTRACTION && (infixTokens.get(i + 1).isFunction() 
+                                                      || infixTokens.get(i + 1).isConstant() 
+                                                      || infixTokens.get(i + 1).type == Type.OPEN_PARENTHESIS)
+                                                      ) {
+                    postfixTokens.add(new Token(Type.NEGATIVE, null, null, "-"));
+                    postfixTokens.add(new Token(Type.ONE, 1.0, null, "1"));
+                    postfixTokens.add(new Token(Type.SPACE, null, null, " "));
+
+                    if (!infixTokens.get(i + 1).isFunction()) {
+                        subtokens.add(new Token(Type.NEGATIVE, null, null, "-"));
+                        subtokens.add(new Token(Type.ONE, 1.0, null, "1"));
+                        subtokens.add(new Token(Type.SPACE, null, null, " "));
+                    }
+
+                    stack.push(new Token(Type.MULTIPLICATION, null, null, "*"));
+                
+                // subtraction or operator
+                } else {
+                    while (!stack.isEmpty() && 
+                    precedence(t.type) <= precedence(stack.peek().type)) {
+                        postfixTokens.add(stack.peek());
+                        subtokens.add(stack.peek());
+                        stack.pop();
+                    }
+
+                    stack.push(t);
+                } 
+                                                   
+            // function
+            } else if (t.isFunction()) {
+                if (hasCoeff) {
+                    stack.push(new Token(Type.MULTIPLICATION, null ,null, "*"));
+                    hasCoeff = false;
+                }
+
+                postfixTokens.add(t);
+                stack.push(t);
+
+             // constant or variable
+            } else if (t.isConstant() || t.type == Type.VARIABLE) {
+                if (hasCoeff) {
+                    stack.push(new Token(Type.MULTIPLICATION, null ,null, "*"));
+                    hasCoeff = false;
+                }
+
+                postfixTokens.add(t);
+                subtokens.add(t);
+
+            // decimal
+            } else if (t.type == Type.DECIMAL) {
+                postfixTokens.add(t);
+                subtokens.add(t);
+
+            // open parenthesis
+            } else if (t.type == Type.OPEN_PARENTHESIS) {
                 stack.push(new Token(Type.OPEN_PARENTHESIS, null, null, "("));
 
             // close parenthesis
-            } else if (curChar == ')') {
+            } else if (t.type == Type.CLOSE_PARENTHESIS) {
                 while (!stack.isEmpty() && 
                         stack.peek().type != Type.OPEN_PARENTHESIS) {
-                    tokens.add(stack.peek()); 
+                    postfixTokens.add(stack.peek()); 
                     subtokens.add(stack.pop());
                 }
                 stack.pop();
@@ -375,67 +471,9 @@ public class ExpressionTree {
                     subtokens.add(0, stack.pop());
                 }
 
-                distributeNegative = false;
-
-            // decimal    
-            } else if (curChar == '.') {
-                tokens.add(new Token(Type.DECIMAL, null, null, "."));
-                subtokens.add(new Token(Type.E, Math.E, null, "e"));
-
-            // euler's constant
-            } else if (curChar == 'e') {
-                tokens.add(new Token(Type.E, Math.E, null, "e"));
-                subtokens.add(new Token(Type.E, Math.E, null, "e")); 
-            
-            // pi
-            } else if (curChar == 'p' && (infix.charAt(i + 1) == 'i')) {
-                tokens.add(new Token(Type.PI, Math.PI, null, "pi"));
-                subtokens.add(new Token(Type.PI, Math.PI, null, "pi"));
-                i++;
-                    
-            // binary operator
             } else {
-                Type curType = operatorMap.get(curChar);
-
-                // negative number
-                if (curType == Type.SUBTRACTION && (Character.isDigit(infix.charAt(i + 1)))) {
-                    tokens.add(new Token(Type.NEGATIVE, null, null, "-"));
-                    subtokens.add(new Token(Type.NEGATIVE, null, null, "-"));
-
-                // coefficient of -1
-                } else if (curType == Type.SUBTRACTION && Character.isLetter(infix.charAt(i + 1))) {
-                    tokens.add(new Token(Type.NEGATIVE, null, null, "-"));
-                    tokens.add(new Token(Type.ONE, 1.0 , null, "1"));
-                    tokens.add(new Token(Type.SPACE, null , null, " "));
-
-                    if ((infix.charAt(i + 1) == 'p' && infix.charAt(i + 2) == 'i') 
-                                                    || infix.charAt(i + 1) == 'e') {
-                        subtokens.add(new Token(Type.NEGATIVE, null, null, "-"));
-                        subtokens.add(new Token(Type.ONE, 1.0 , null, "1"));
-                        subtokens.add(new Token(Type.SPACE, null , null, " "));
-                    }
-                    
-
-                    stack.push(new Token(Type.MULTIPLICATION, null, null, "*"));
-
-                // distrubutive negative
-                } else if (curType == Type.SUBTRACTION && infix.charAt(i + 1) == '(') {
-                    distributeNegative = true;
-                    
-                // operator
-                } else {
-                    while (!stack.isEmpty() && 
-                        precedence(curType) <= precedence(stack.peek().type)) {
-                    tokens.add(stack.peek());
-                    subtokens.add(stack.peek());
-                    stack.pop();
-                    }
-                    stack.push(new Token(curType, null, null, String.valueOf(curChar)));
-                }
-                
-                
+                throw new IllegalArgumentException("Unknwon token: \"" + t.show + "\"");
             }
-            
         }
 
         // pop all the operators from the stack
@@ -443,22 +481,24 @@ public class ExpressionTree {
             if (stack.peek().type == Type.OPEN_PARENTHESIS)
                 throw new IllegalArgumentException("Invalid Expression Format");
 
-            tokens.add(stack.pop());
+            postfixTokens.add(stack.pop());
         }
 
-        return tokens;
+        return postfixTokens;
     }
 
+    
     /**
      * Combines multi-digit operand tokens and removes empty spaces.
      * 
      * @param tokens
      */
-    public static void concatenateExpression(ArrayList<Token> tokens) {
+    public static void condense(ArrayList<Token> tokens) {
         if (isCondensed(tokens))
             return;
 
         String newDigit = "";
+
         // combines tokens that logically read as a multi-digit number or decimal into a single token
         for (int i = 0; i < tokens.size(); i++) {
             Token t = tokens.get(i);
@@ -466,18 +506,21 @@ public class ExpressionTree {
             if (t.isOperand() || t.type == Type.DECIMAL || t.type == Type.NEGATIVE) {
                 newDigit += t.show;
 
-                // next token not an operand or decimal, end of digit
-                if (!tokens.get(i + 1).isOperand() && tokens.get(i + 1).type != Type.DECIMAL) {
-                    int j = newDigit.length();
-                    while (j > 0) {
-                        tokens.remove(i - (newDigit.length() - 1));
-                        j--;
-                    }
+                if (i + 1 < tokens.size()) {
+                    // next token not an operand or decimal, end of digit
+                    if (!tokens.get(i + 1).isOperand() && tokens.get(i + 1).type != Type.DECIMAL) {
+                        int j = newDigit.length();
+                        while (j > 0) {
+                            tokens.remove(i - (newDigit.length() - 1));
+                            j--;
+                        }
                     
-                    i -= newDigit.length() - 1;
-                    tokens.add(i, new Token(Type.OPERAND, Double.parseDouble(newDigit), null, newDigit));
-                    newDigit = "";
+                        i -= newDigit.length() - 1;
+                        tokens.add(i, new Token(Type.OPERAND, Double.parseDouble(newDigit), null, newDigit));
+                        newDigit = "";
+                    }
                 }
+                
             } 
         }
 
@@ -487,10 +530,10 @@ public class ExpressionTree {
                 tokens.remove(i);
         }
 
-        // recursively perform this operation on each subtokens associated with the function
+        // recursively perform this operation on each list of subtokens associated with the function
         for (int i = 0; i < tokens.size(); i++) {
             if (tokens.get(i).isFunction())
-                concatenateExpression(tokens.get(i).partial);
+                condense(tokens.get(i).partial);
         }
         
     }
@@ -505,6 +548,7 @@ public class ExpressionTree {
         switch (type) {
             case ADDITION:
             case SUBTRACTION:
+            case NEGATIVE:
                 return 1;
             case MULTIPLICATION:
             case DIVISION:
@@ -562,12 +606,12 @@ public class ExpressionTree {
     }
 
     /**
-     * Returns infix expression this tree is build on.
+     * Returns orginal expression this tree is build on.
      * 
      * @return infix
      */
-    public String getInfix() {
-        return infix;
+    public String getExpression() {
+        return expression;
     }
 
     /**
@@ -595,7 +639,7 @@ public class ExpressionTree {
     public String printTokens() {
         String ret = "";
         for (Token t : tokens) 
-            ret += t.show + " ";
+            ret += t.show;
 
         return ret;
     }
