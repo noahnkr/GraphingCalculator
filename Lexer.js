@@ -1,4 +1,4 @@
-import { tokenTypes, digitMap, operatorMap, functionMap } from "./Token.js";
+import { tokenTypes, digitMap, operatorMap, functionMap } from './Token.js';
 
 
 /* Tokenizes an infix expression through lexical analysis */
