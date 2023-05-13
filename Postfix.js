@@ -1,4 +1,4 @@
-import { tokenTypes, createToken } from './Token.js';
+import { tokenTypes, createToken } from './token.js';
 
 
 /* Converts a list of infix tokens into postfix format. */

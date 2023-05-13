@@ -1,6 +1,6 @@
-import { tokenize } from "./Lexer.js";
-import { infixToPostfix, condense } from "./postfix.js";
-import { buildTree, drawTree, solve } from "./expression-tree.js";
+import { tokenize } from './lexer.js';
+import { buildTree, solve } from './expression-tree.js';
+import { infixToPostfix, condense } from './postfix.js';
 
 class MathExpression {
 
@@ -8,19 +8,15 @@ class MathExpression {
         let tokens = infixToPostfix(tokenize(equation));
         condense(tokens);
         let root = buildTree(tokens);
-        console.log(drawTree(root));
         return solve(root, x);
     }
 
     static makeFunction(equation) {
         return function(x) {
-            return this.evaluate(equation, x);
+            return MathExpression.evaluate(equation, x);
         }
     }
 }
-
-var f = makeFunction('sqrt(x)');
-console.log(f(4));
 
 
 export default MathExpression;

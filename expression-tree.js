@@ -26,7 +26,6 @@ export function solve(node, x) {
     if (node.token.isOperator()) {
         return node.token.math(solve(node.left, x),
                                solve(node.right, x));
-        
     }
 
     if (node.token.isFunction()) {

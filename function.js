@@ -57,3 +57,7 @@ export const mathFunctions = {
         return Math.abs(x);
     }
 };
+
+function convertToRadians(deg) {
+    return (deg * Math.PI) / 180; 
+}
