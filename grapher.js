@@ -2,36 +2,16 @@ import MathExpression from "./expression.js";
 
 class Grapher {
 
-    /*
-        Settings:
-        - width
-        - height
-        - gridSize
-        - gridColor
-        - backgroundColor
-        - showGrid (true/false)
-        - scale
-
-    */ 
-    constructor(settings) {
-        settings = settings || {};
-
+    constructor() {
         this.canvas = document.getElementById('graph');
         this.ctx = this.canvas.getContext('2d');
 
-        this.canvas.width = settings.width || 1000;
-        this.canvas.height = settings.height || 1000;
+        this.canvas.width = 10000;
+        this.canvas.height = 10000;
+        this.gridSize = 100;
+        this.gridColor = '#fff';
+        this.backgroundColor = '#343434';
 
-        this.gridSize = settings.gridSize || 50;
-
-        this.gridColor = settings.gridColor || '#000';
-        this.backgroundColor = settings.backGroundColor || '#fff';
-        if (settings.showGrid === false) {
-            this.showGrid = false;
-        } else {
-            this.showGrid = true;
-        }
-        
         this.xRange = {
             min: -((this.canvas.width / 2) / this.gridSize),
             max: ((this.canvas.width / 2) / this.gridSize)
@@ -46,27 +26,71 @@ class Grapher {
         this.xScale = this.canvas.width / (this.xRange.max - this.xRange.min);
         this.yScale = this.canvas.height / (this.yRange.max - this.yRange.min);
 
-        this.increment = 0.02;
+        this.posX = -(this.canvas.width / 2.5);
+        this.posY = -(this.canvas.height / 2.3);
+        this.lastX = 0;
+        this.lastY = 0;
+        this.scale = 0.5;
+        this.isDragging - false;
 
+        this.increment = 0.02;
         this.functions = [];
+
+        this.canvas.addEventListener('mousedown', () => {
+            this.isDragging = true;
+            this.lastX = event.clientX;
+            this.lastY = event.clientY;
+        });
+
+        this.canvas.addEventListener('mouseup', () => {
+            this.isDragging = false;
+        });
+
+        this.canvas.addEventListener('mousemove', event => {
+            if (this.isDragging) {
+                var deltaX = event.clientX - this.lastX;
+                var deltaY = event.clientY - this.lastY;
+                this.posX += deltaX;
+                this.posY += deltaY;
+                this.render();
+            }
+
+            this.lastX = event.clientX;
+                this.lastY = event.clientY;
+        });
+
+        this.canvas.addEventListener('mouseleave', event => {
+            this.isDragging = false
+        });
+
+        this.canvas.addEventListener('wheel', event => {
+            var zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
+            this.scale *= zoomFactor;
+            if (this.scale < 0.1) {
+                this.scale = 0.1;
+            }
+
+            this.render();
+            event.preventDefault();
+        });
 
         this.render();
     }
 
     render() {
+        
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.save();
+        this.ctx.translate(this.posX, this.posY);
         this.ctx.fillStyle = this.backgroundColor;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-        if (this.showGrid) {
-            this.drawGrid();
-            this.drawLabels();
-        }
-
+        this.drawGrid();
+        this.drawLabels();
         this.drawFunctions();
+        this.ctx.restore();
     }
 
     drawGrid() {
-
         this.ctx.strokeStyle = this.gridColor;
 
         this.ctx.lineWidth = 1;
@@ -162,23 +186,11 @@ class Grapher {
 
         this.render();
     }
-
 }
 
-var settings = {
-    width: 2200,
-    height: 1400,
-    gridSize: 100,
-    showGrid: true,
-    gridColor: '#fff',
-    backGroundColor: '#343434'
-}
-
-
-var g = new Grapher(settings);
+var g = new Grapher();
 
 g.addFunction(MathExpression.makeFunction('x^2'), 'red');
-g.addFunction(MathExpression.makeFunction('0'), 'blue');
 
 
 
