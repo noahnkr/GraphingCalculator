@@ -1,0 +1,18 @@
+* { 
+    margin: 0px; 
+    padding: 0px; 
+}
+
+#main {
+    display: flex;
+    flex-direction: row;;
+}
+
+#graph-container {
+    width: 87.5%;
+}
+
+#toolbar {
+    width: 12.5%;
+}
+

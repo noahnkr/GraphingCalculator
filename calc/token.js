@@ -1,4 +1,4 @@
-import { mathFunctions } from "./Functions.js";
+import { mathFunctions } from "./function.js";
 
 export default class Token {
     constructor(type, value, subtokens, show, math) {
