@@ -74,7 +74,7 @@ export function tokenize(expression) {
             
             // Unknown Character
             } else {
-                throw new Error('Unknown Character: \'', curChar,'\'');
+                throw new Error('Unknown Character: ', curChar);
             }
         }
     }

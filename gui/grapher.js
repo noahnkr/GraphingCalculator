@@ -1,4 +1,4 @@
-import MathExpression from "./expression.js";
+import MathExpression from "../calc/expression.js";
 
 class Grapher {
 
@@ -6,11 +6,10 @@ class Grapher {
         this.canvas = document.getElementById('graph');
         this.ctx = this.canvas.getContext('2d');
 
-        this.canvas.width = 10000;
-        this.canvas.height = 10000;
         this.gridSize = 100;
         this.gridColor = '#fff';
-        this.backgroundColor = '#343434';
+        this.backgroundColor = '#333';
+        this.darkMode = true;
 
         this.xRange = {
             min: -((this.canvas.width / 2) / this.gridSize),
@@ -26,11 +25,11 @@ class Grapher {
         this.xScale = this.canvas.width / (this.xRange.max - this.xRange.min);
         this.yScale = this.canvas.height / (this.yRange.max - this.yRange.min);
 
-        this.posX = -(this.canvas.width / 2.5);
-        this.posY = -(this.canvas.height / 2.3);
+        this.posX = -10;
+        this.posY = 0;
         this.lastX = 0;
         this.lastY = 0;
-        this.scale = 0.5;
+        this.scale = 1;
         this.isDragging - false;
 
         this.increment = 0.02;
@@ -78,10 +77,11 @@ class Grapher {
     }
 
     render() {
-        
+        console.log('rendering');
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.save();
         this.ctx.translate(this.posX, this.posY);
+        this.ctx.scale(this.scale, this.scale)
         this.ctx.fillStyle = this.backgroundColor;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         this.drawGrid();
@@ -133,14 +133,19 @@ class Grapher {
     }
 
     drawLabels() {
-        this.ctx.fillStyle = '#fff';
-        this.ctx.globalAlpha = 0.5;
+        this.ctx.fillStyle = this.darkMode ? '#fff' : '#000';
+        this.ctx.globalAlpha = 1;
         this.ctx.font = '24px Roboto';
 
         // x labels
         for (var i = 0; i <= this.canvas.width; i += this.gridSize) {
             var value = (i - (this.canvas.width / 2)) / this.gridSize;
-            this.ctx.fillText(value, i + (this.gridSize / 16) , this.canvas.height / 2 - (this.gridSize / 8));
+            if (value != 0) {
+                this.ctx.fillText(value, i - (this.gridSize / 16), this.canvas.height / 2 - (this.gridSize / 8));
+            } else {
+                this.ctx.fillText(value, i + (this.gridSize / 16), this.canvas.height / 2 - (this.gridSize / 8));
+            }
+            
         }
 
         // y labels
@@ -148,7 +153,7 @@ class Grapher {
             var value = -(i - (this.canvas.height / 2)) / this.gridSize;
             // origin label already drawn
             if (value != 0) {
-                this.ctx.fillText(value, this.canvas.width / 2 + (this.gridSize / 16), i - (this.gridSize / 8))
+                this.ctx.fillText(value, this.canvas.width / 2 + (this.gridSize / 16), i + (this.gridSize / 16))
             }
         }
     }
@@ -156,12 +161,14 @@ class Grapher {
 
     drawFunctions() {
         for (var i in this.functions) {
-            this.drawFunction(i);
+            if (this.functions[i].expression !== '') {
+                this.drawFunction(i);
+            }
         }
     }
 
     drawFunction(index) {
-        var f = this.functions[index].func;
+        var f = MathExpression.makeFunction(this.functions[index].expression);
         this.ctx.strokeStyle = this.functions[index].color;
         this.ctx.lineWidth = 1;
         this.ctx.globalAlpha = 1;
@@ -178,19 +185,31 @@ class Grapher {
         this.ctx.closePath();
     }
 
-    addFunction(f, color) {
+    addFunction(expression, color) {
         this.functions.push({
-            func: f,
+            expression: expression,
             color: color
         });
 
         this.render();
     }
+
+    toggleLightMode() {
+        if (this.darkMode) {
+            this.backgroundColor = '#fff';
+            this.gridColor = '#000';
+            this.darkMode = false;
+        } else {
+            this.backgroundColor = '#333';
+            this.gridColor = '#fff';
+            this.darkMode = true;
+        }
+
+        this.render();
+    }
 }
 
-var g = new Grapher();
-
-g.addFunction(MathExpression.makeFunction('x^2'), 'red');
+export default Grapher;
 
 
 
