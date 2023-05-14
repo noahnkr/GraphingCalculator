@@ -1,215 +1,202 @@
 import MathExpression from "../calc/expression.js";
 
-class Grapher {
+export var functions = [];
 
-    constructor() {
-        this.canvas = document.getElementById('graph');
-        this.ctx = this.canvas.getContext('2d');
+const canvas = document.getElementById('graph');
+const ctx = canvas.getContext('2d');
 
-        this.gridSize = 100;
-        this.gridColor = '#fff';
-        this.backgroundColor = '#333';
-        this.darkMode = true;
+const functionCanvas = document.createElement('canvas');
+functionCanvas.width = canvas.width;
+functionCanvas.height = canvas.height;
 
-        this.xRange = {
-            min: -((this.canvas.width / 2) / this.gridSize),
-            max: ((this.canvas.width / 2) / this.gridSize)
-        };
+const functionCtx = functionCanvas.getContext('2d');
+
+const gridSize = 100;
+const gridColor = '#fff';
+const backgroundColor = '#333';
+
+const increment = 0.02;
+const panSensitivity = 1;
+
+var xRange = {
+    start: -((canvas.width / 2) / gridSize),
+    end: ((canvas.width / 2) / gridSize)
+};
 
 
-        this.yRange = {
-            min: -((this.canvas.height / 2) / this.gridSize),
-            max: ((this.canvas.height / 2) / this.gridSize)
-        };
+var yRange = {
+    start: -((canvas.height / 2) / gridSize),
+    end: ((canvas.height / 2) / gridSize)
+};
 
-        this.xScale = this.canvas.width / (this.xRange.max - this.xRange.min);
-        this.yScale = this.canvas.height / (this.yRange.max - this.yRange.min);
+var xScale = canvas.width / (xRange.end - xRange.start);
+var yScale = canvas.height / (yRange.end - yRange.start);
 
-        this.posX = -10;
-        this.posY = 0;
-        this.lastX = 0;
-        this.lastY = 0;
-        this.scale = 1;
-        this.isDragging - false;
+var posX = 0;
+var posY = -(canvas.width / 8);
+var lastX = 0;
+var lastY = 0;
 
-        this.increment = 0.02;
-        this.functions = [];
+var isDragging = false;
 
-        this.canvas.addEventListener('mousedown', () => {
-            this.isDragging = true;
-            this.lastX = event.clientX;
-            this.lastY = event.clientY;
-        });
+canvas.addEventListener('mousedown', (event) => {
+    isDragging = true;
+    var coords = canvasToGraphCoordinates(event.clientX, event.clientY)
+    lastX = coords.x;
+    lastY = coords.y;
+});
 
-        this.canvas.addEventListener('mouseup', () => {
-            this.isDragging = false;
-        });
+canvas.addEventListener('mouseup', () => {
+    isDragging = false;
+});
 
-        this.canvas.addEventListener('mousemove', event => {
-            if (this.isDragging) {
-                var deltaX = event.clientX - this.lastX;
-                var deltaY = event.clientY - this.lastY;
-                this.posX += deltaX;
-                this.posY += deltaY;
-                this.render();
-            }
+canvas.addEventListener('mouseleave',() => {
+    isDragging = false
+});
 
-            this.lastX = event.clientX;
-                this.lastY = event.clientY;
-        });
+canvas.addEventListener('mousemove', event => {
+    if (isDragging) {
+        var coords = canvasToGraphCoordinates(event.clientX, event.clientY);
+        var deltaX = (coords.x - lastX) * panSensitivity * gridSize;
+        var deltaY = (coords.y - lastY) * panSensitivity * gridSize;
 
-        this.canvas.addEventListener('mouseleave', event => {
-            this.isDragging = false
-        });
+        posX += deltaX;
+        posY -= deltaY;
 
-        this.canvas.addEventListener('wheel', event => {
-            var zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
-            this.scale *= zoomFactor;
-            if (this.scale < 0.1) {
-                this.scale = 0.1;
-            }
+        render();
 
-            this.render();
-            event.preventDefault();
-        });
+        lastX = coords.x;
+        lastY = coords.y;
+    }
+});
 
-        this.render();
+canvas.addEventListener('wheel', event => {
+  
+});
+
+function canvasToGraphCoordinates(x, y) {
+    var graphX = ((x / xScale) - xRange.start);
+    var graphY = ((canvas.height - y) / yScale) + yRange.start;
+    return { x: graphX, y: graphY };
+}
+
+export function render() {
+    ctx.save();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = backgroundColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.translate(posX, posY);
+    drawGrid();
+    drawLabels();
+    ctx.drawImage(functionCanvas, 0, 0);
+    ctx.restore();
+}
+
+function drawGrid() {
+    ctx.strokeStyle = gridColor;
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.5;
+
+    // draw x axes
+    for (var i = 0; i <= canvas.width; i += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, canvas.height);
+        ctx.stroke();
+        ctx.closePath();
     }
 
-    render() {
-        console.log('rendering');
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.ctx.save();
-        this.ctx.translate(this.posX, this.posY);
-        this.ctx.scale(this.scale, this.scale)
-        this.ctx.fillStyle = this.backgroundColor;
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        this.drawGrid();
-        this.drawLabels();
-        this.drawFunctions();
-        this.ctx.restore();
+    // draw y axes
+    for (var i = 0; i <= canvas.height; i += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, i);
+        ctx.lineTo(canvas.width, i);
+        ctx.stroke();
+        ctx.closePath();
     }
 
-    drawGrid() {
-        this.ctx.strokeStyle = this.gridColor;
+    ctx.lineWidth = 3;
+    ctx.globalAlpha = 1;
 
-        this.ctx.lineWidth = 1;
-        this.ctx.globalAlpha = 0.5;
+    // draw x origin
+    ctx.beginPath();
+    ctx.moveTo(canvas.width / 2, 0);
+    ctx.lineTo(canvas.width / 2, canvas.height);
+    ctx.stroke();
+    ctx.closePath();
 
-        // draw x axes
-        for (var i = 0; i < this.canvas.width; i += this.gridSize) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(i, 0);
-            this.ctx.lineTo(i, this.canvas.height);
-            this.ctx.stroke();
-            this.ctx.closePath();
-        }
+    // draw y origin
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height / 2);
+    ctx.lineTo(canvas.width, canvas.height / 2);
+    ctx.stroke();
+    ctx.closePath();
+}
 
-        // draw y axes
-        for (var i = 0; i < this.canvas.height; i += this.gridSize) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(0, i);
-            this.ctx.lineTo(this.canvas.width, i);
-            this.ctx.stroke();
-            this.ctx.closePath();
-        }
+function drawLabels() {
+    ctx.fillStyle = '#fff';
+    ctx.globalAlpha = 1;
+    ctx.font = '24px Roboto';
 
-        this.ctx.lineWidth = 3;
-        this.ctx.globalAlpha = 1;
-
-        // draw x origin
-        this.ctx.beginPath();
-        this.ctx.moveTo(this.canvas.width / 2, 0);
-        this.ctx.lineTo(this.canvas.width / 2, this.canvas.height);
-        this.ctx.stroke();
-        this.ctx.closePath();
-
-        // draw y origin
-        this.ctx.beginPath();
-        this.ctx.moveTo(0, this.canvas.height / 2);
-        this.ctx.lineTo(this.canvas.width, this.canvas.height / 2);
-        this.ctx.stroke();
-        this.ctx.closePath();
-    }
-
-    drawLabels() {
-        this.ctx.fillStyle = this.darkMode ? '#fff' : '#000';
-        this.ctx.globalAlpha = 1;
-        this.ctx.font = '24px Roboto';
-
-        // x labels
-        for (var i = 0; i <= this.canvas.width; i += this.gridSize) {
-            var value = (i - (this.canvas.width / 2)) / this.gridSize;
-            if (value != 0) {
-                this.ctx.fillText(value, i - (this.gridSize / 16), this.canvas.height / 2 - (this.gridSize / 8));
-            } else {
-                this.ctx.fillText(value, i + (this.gridSize / 16), this.canvas.height / 2 - (this.gridSize / 8));
-            }
-            
-        }
-
-        // y labels
-        for (var i = this.canvas.height; i >= 0; i -= this.gridSize) {
-            var value = -(i - (this.canvas.height / 2)) / this.gridSize;
-            // origin label already drawn
-            if (value != 0) {
-                this.ctx.fillText(value, this.canvas.width / 2 + (this.gridSize / 16), i + (this.gridSize / 16))
-            }
-        }
-    }
-
-
-    drawFunctions() {
-        for (var i in this.functions) {
-            if (this.functions[i].expression !== '') {
-                this.drawFunction(i);
-            }
-        }
-    }
-
-    drawFunction(index) {
-        var f = MathExpression.makeFunction(this.functions[index].expression);
-        this.ctx.strokeStyle = this.functions[index].color;
-        this.ctx.lineWidth = 1;
-        this.ctx.globalAlpha = 1;
-
-        this.ctx.beginPath();
-        this.ctx.moveTo(0, (f(this.xRange.min) - this.yRange.min) * this.yScale);
-
-        for (var x = this.xRange.min; x <= this.xRange.max; x += this.increment) {
-            var y = f(x);
-            this.ctx.lineTo((x - this.xRange.min) * this.xScale, this.canvas.height - ((y - this.yRange.min) * this.yScale));
-        }
-
-        this.ctx.stroke();
-        this.ctx.closePath();
-    }
-
-    addFunction(expression, color) {
-        this.functions.push({
-            expression: expression,
-            color: color
-        });
-
-        this.render();
-    }
-
-    toggleLightMode() {
-        if (this.darkMode) {
-            this.backgroundColor = '#fff';
-            this.gridColor = '#000';
-            this.darkMode = false;
+    // x labels
+    for (var i = 0; i <= canvas.width; i += gridSize) {
+        var value = xRange.start + (i / gridSize);
+        if (value != 0) {
+            ctx.fillText(value, i - (gridSize / 16), canvas.height / 2 - (gridSize / 8));
         } else {
-            this.backgroundColor = '#333';
-            this.gridColor = '#fff';
-            this.darkMode = true;
+            ctx.fillText(value, i + (gridSize / 16), canvas.height / 2 - (gridSize / 8));
         }
+        
+    }
 
-        this.render();
+    // y labels
+    for (var i = canvas.height; i >= 0; i -= gridSize) {
+        var value = yRange.end - (i / gridSize);
+        // origin label already drawn
+        if (value != 0) {
+            ctx.fillText(value, canvas.width / 2 + (gridSize / 16), i + (gridSize / 16))
+        }
     }
 }
 
-export default Grapher;
 
+export function drawFunctions() {
+    functionCtx.clearRect(0, 0, functionCanvas.width, functionCanvas.height);
+    for (var i in functions) {
+        if (functions[i].expression !== '') {
+            drawFunction(i);
+        }
+    }
+}
+
+function drawFunction(index) {
+    var f = MathExpression.makeFunction(functions[index].expression);
+    functionCtx.strokeStyle = functions[index].color;
+    functionCtx.lineWidth = 3;
+    functionCtx.globalAlpha = 1;
+
+    functionCtx.beginPath();
+    functionCtx.moveTo(0, (canvas.height - (f(xRange.start) - yRange.start) * yScale));
+
+    for (var x = xRange.start; x <= xRange.end; x += increment) {
+        var y = f(x);
+        functionCtx.lineTo((x - xRange.start) * xScale, canvas.height - ((y - yRange.start) * yScale));
+    }
+
+    functionCtx.stroke();
+    functionCtx.closePath();
+}
+
+export function addFunction(expression, color) {
+    functions.push({
+        expression: expression,
+        color: color
+    });
+
+    render();
+}
+
+
+  
 
 

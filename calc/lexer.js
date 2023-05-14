@@ -32,7 +32,7 @@ export function tokenize(expression) {
 
                 // Longest key length is 4
                 if (j > 4) {
-                    throw new Error('Unknown function: \'', show, '\'');
+                    throw new Error('Unknown function: ' + show);
                 }
             }
 
