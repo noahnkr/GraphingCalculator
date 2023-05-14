@@ -6,22 +6,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Graphing Calculator</title>
     <link href="style.css" rel="stylesheet"></link>
-    <script src="./graphing-calculator/grapher.js" type="module"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@600&display=swap" rel="stylesheet">
+    <script src="./gui/graph-math.js" type="module"></script>
+
+    <!-- 
+        TODO:
+        - Implement KaTeX into function input
+        - Fix radical functions with asymptotes
+        - Add slider for functions and variables
+    -->
+    
+
 </head>
 <body>
     <div id="main">
-        <div id="toolbar">
-            <div id="function-input">
-
+        <div id="sidebar">
+            <div id="heading">
+                GraphMath
             </div>
-            
+            <div id="functions-container">
+                <div id="functions">
+
+                </div>
+                <div id="button-container">
+                    <button id="add-input-button">+</button>
+                </div>
+            </div>
         </div>
 
         <div id="graph-container">
-            <canvas id="graph"></canvas>
+            <canvas id="graph" width="2000" height="2000"></canvas>
         </div>
-        
-        
     </div>
 </body>
 </html>
