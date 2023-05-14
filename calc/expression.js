@@ -1,5 +1,5 @@
 import { tokenize } from './lexer.js';
-import { buildTree, solve } from './expression-tree.js';
+import { buildTree, drawTree, solve } from './expression-tree.js';
 import { infixToPostfix, condense } from './postfix.js';
 
 class MathExpression {

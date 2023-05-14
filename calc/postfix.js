@@ -8,6 +8,7 @@ export function infixToPostfix(infix) {
     var operatorStacks = [];
     // Base stack
     operatorStacks.push([]);
+
     var hasCoefficient = false;
 
     for (var i = 0; i < infix.length; i++) {
@@ -50,8 +51,9 @@ export function infixToPostfix(infix) {
                 }
             }
 
-        // Operator
+        // Operator or Negative
         } else if (curToken.isOperator()) {
+        
             // Negative number
             if (curToken.type == tokenTypes.SUBTRACTION.type && infix[i + 1].isOperand()) {
                 if (functionStack.length != 0) {
@@ -64,7 +66,9 @@ export function infixToPostfix(infix) {
             } else if (curToken.type == tokenTypes.SUBTRACTION.type && 
                                          (infix[i + 1].isFunction() ||
                                           infix[i + 1].isConstant() ||
+                                          infix[i + 1].isVariable() ||
                                           infix[i + 1].type == tokenTypes.OPEN_PARENTHESIS.type)) {
+                
                 if (functionStack.length != 0) {
                     functionStack[functionStack.length - 1].subtokens.push(tokenTypes.NEGATIVE);
                     functionStack[functionStack.length - 1].subtokens.push(tokenTypes.ONE);
@@ -75,7 +79,12 @@ export function infixToPostfix(infix) {
                     postfix.push(tokenTypes.SPACE);
                 }
 
-                operatorStacks[operatorStacks.length].push(tokenTypes.MULTIPLICATION);
+                if (operatorStacks.length != 0) {
+                    operatorStacks[operatorStacks.length - 1].push(tokenTypes.MULTIPLICATION);
+                } else {
+                    operatorStacks[0].push(tokenTypes.MULTIPLICATION);
+                }
+                
             
             // Operator
             } else {
@@ -213,7 +222,8 @@ export function condense(tokens) {
                     }
                     // Insert new operand token
                     i -= newDigit.length - 1;
-                    tokens.splice(i, 0, createToken(tokenTypes.OPERAND.type, parseInt(newDigit), null, newDigit));
+
+                    tokens.splice(i, 0, createToken(tokenTypes.OPERAND.type, parseFloat(newDigit), null, newDigit));
                     newDigit = '';
                 }
             } 
