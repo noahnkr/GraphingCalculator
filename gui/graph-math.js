@@ -1,4 +1,3 @@
-import MathExpression from '../calc/expression.js';
 import { render } from './grapher.js';
 import { addInput } from './sidebar.js';
 
