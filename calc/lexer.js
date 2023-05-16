@@ -1,9 +1,9 @@
-import { tokenTypes, digitMap, operatorMap, functionMap } from './token.js';
+import { tokens, digitMap, operatorMap, functionMap } from './token.js';
 
 
 /* Tokenizes an infix expression through lexical analysis */
 export function tokenize(expression) {
-    var tokens = [];
+    var infix = [];
     var length = expression.length;
 
     for (var i = 0; i < length; i++) {
@@ -11,11 +11,11 @@ export function tokenize(expression) {
         
         // Empty Space
         if (curChar == ' ') {
-            tokens.push(tokenTypes.SPACE);
+            infix.push(tokens.SPACE);
 
         // Digit
         } else if (!isNaN(curChar)) {
-            tokens.push(digitMap.get(parseInt(curChar)));
+            infix.push(digitMap.get(parseInt(curChar)));
 
         // Function
         } else if (curChar.match(/[a-zA-Z]/) && curChar !== 'x'
@@ -37,40 +37,40 @@ export function tokenize(expression) {
             }
 
             // Contains key!
-            tokens.push(functionMap.get(show));
-            tokens.push(tokenTypes.FUNCTION_OPEN);
+            infix.push(functionMap.get(show));
+            infix.push(tokens.FUNCTION_OPEN);
             i += (j - 1) + 1
         
 
         // Variable
         } else if (curChar === 'x') {
-            tokens.push(tokenTypes.VARIABLE);
+            infix.push(tokens.VARIABLE);
         
         // Open Parenthesis
         } else if (curChar === '(') {
-            tokens.push(tokenTypes.OPEN_PARENTHESIS);
+            infix.push(tokens.OPEN_PARENTHESIS);
         
         // Close Parenthesis
         } else if (curChar === ')') {
-            tokens.push(tokenTypes.CLOSE_PARENTHESIS);
+            infix.push(tokens.CLOSE_PARENTHESIS);
         
         // Decimal
         } else if (curChar === '.') {
-            tokens.push(tokenTypes.DECIMAL);
+            infix.push(tokens.DECIMAL);
         
         // E
         } else if (curChar === 'e') {
-            tokens.push(tokenTypes.E);
+            infix.push(tokens.E);
 
         // Pi
         } else if (curChar === 'p' && expression[i + 1] === 'i') {
-            tokens.push(tokenTypes.PI);
+            infix.push(tokens.PI);
             i++;
         
         // Operator
         } else {
             if (operatorMap.has(curChar)) {
-                tokens.push(operatorMap.get(curChar));
+                infix.push(operatorMap.get(curChar));
             
             // Unknown Character
             } else {
@@ -80,24 +80,24 @@ export function tokenize(expression) {
     }
 
     // Finds each functions respective closing parenthesis
-    for (var i = 0; i < tokens.length; i++) {
-        var curToken = tokens[i];
+    for (var i = 0; i < infix.length; i++) {
+        var curToken = infix[i];
         if (curToken.isFunction()) {
             let parenthesisCount = 0;
             // Skip opening parenthesis
-            for (var j = i + 2; j < tokens.length; j++) {
-                if (tokens[j].type == tokenTypes.OPEN_PARENTHESIS.type) {
+            for (var j = i + 2; j < infix.length; j++) {
+                if (infix[j].type == tokens.OPEN_PARENTHESIS.type) {
                     parenthesisCount++;
-                } else if (tokens[j].type == tokenTypes.CLOSE_PARENTHESIS.type && 
+                } else if (infix[j].type == tokens.CLOSE_PARENTHESIS.type && 
                          parenthesisCount == 0) {
-                    tokens[j] = tokenTypes.FUNCTION_CLOSE;
+                    infix[j] = tokens.FUNCTION_CLOSE;
                     break;
-                } else if (tokens[j].type == tokenTypes.CLOSE_PARENTHESIS.type) {
+                } else if (infix[j].type == tokens.CLOSE_PARENTHESIS.type) {
                     parenthesisCount--;
                 }
             }
         }
     }
 
-    return tokens;
+    return infix;
 }   
