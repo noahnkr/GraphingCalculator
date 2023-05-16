@@ -1,13 +1,46 @@
 import { tokenTypes, createToken } from './token.js';
 
 
+/* Makes infix to postfix conversion VASTLY easier */
+class Stack {
+
+    constructor() {
+        this.items = [];
+        this.length = 0;
+    }
+
+    push(element) {
+        this.items.push(element);
+        this.length++;
+    }
+
+    pop() {
+        if (this.items.length == 0) {
+            throw new Error('Empty Stack.')
+        }
+
+        this.length--;
+        return this.items.pop();
+    }
+
+    peek() {
+        return this.items[this.items.length - 1];
+    }
+
+    isEmpty() {
+        return this.length == 0;
+    }
+
+}
+
+
 /* Converts a list of infix tokens into postfix format. */
 export function infixToPostfix(infix) {
-    var postfix = [];
-    var functionStack = [];
-    var operatorStacks = [];
-    // Base stack
-    operatorStacks.push([]);
+    var postfix = []; // return value
+    var functionStack = new Stack();;
+    var operatorStacks = new Stack();
+    // Base Operator stack
+    operatorStacks.push(new Stack());
 
     var hasCoefficient = false;
 
@@ -37,15 +70,15 @@ export function infixToPostfix(infix) {
                 }
             }
 
-            if (functionStack.length != 0) {
-                functionStack[functionStack.length - 1].subtokens.push(curToken);
+            if (!functionStack.isEmpty()) {
+                functionStack.peek().subtokens.push(curToken);
             } else {
                 postfix.push(curToken);
             }
 
             if (seperator) {
-                if (functionStack.length != 0) {
-                    functionStack[functionStack.length - 1].subtokens.push(tokenTypes.SPACE);
+                if (!functionStack.isEmpty()) {
+                    functionStack.peek().subtokens.push(tokenTypes.SPACE);
                 } else {
                     postfix.push(tokenTypes.SPACE);
                 }
@@ -56,8 +89,8 @@ export function infixToPostfix(infix) {
         
             // Negative number
             if (curToken.type == tokenTypes.SUBTRACTION.type && infix[i + 1].isOperand()) {
-                if (functionStack.length != 0) {
-                    functionStack[functionStack.length - 1].subtokens.push(tokenTypes.NEGATIVE);
+                if (!functionStack.isEmpty()) {
+                    functionStack.peek().subtokens.push(tokenTypes.NEGATIVE);
                 } else {
                     postfix.push(tokenTypes.NEGATIVE);
                 }
@@ -69,10 +102,10 @@ export function infixToPostfix(infix) {
                                           infix[i + 1].isVariable() ||
                                           infix[i + 1].type == tokenTypes.OPEN_PARENTHESIS.type)) {
                 
-                if (functionStack.length != 0) {
-                    functionStack[functionStack.length - 1].subtokens.push(tokenTypes.NEGATIVE);
-                    functionStack[functionStack.length - 1].subtokens.push(tokenTypes.ONE);
-                    functionStack[functionStack.length - 1].subtokens.push(tokenTypes.SPACE);
+                if (!functionStack.isEmpty()) {
+                    functionStack.peek().subtokens.push(tokenTypes.NEGATIVE);
+                    functionStack.peek().subtokens.push(tokenTypes.ONE);
+                    functionStack.peek().subtokens.push(tokenTypes.SPACE);
                 } else {
                     postfix.push(tokenTypes.NEGATIVE);
                     postfix.push(tokenTypes.ONE);
@@ -80,7 +113,7 @@ export function infixToPostfix(infix) {
                 }
 
                 if (operatorStacks.length != 0) {
-                    operatorStacks[operatorStacks.length - 1].push(tokenTypes.MULTIPLICATION);
+                    operatorStacks.peek().push(tokenTypes.MULTIPLICATION);
                 } else {
                     operatorStacks[0].push(tokenTypes.MULTIPLICATION);
                 }
@@ -88,28 +121,26 @@ export function infixToPostfix(infix) {
             
             // Operator
             } else {
-                let curOperatorStack = operatorStacks[operatorStacks.length - 1];
-                while (curOperatorStack.length != 0 && 
-                        curToken.precedence() <= curOperatorStack[curOperatorStack.length - 1].precedence()) {
-                    if (functionStack.length != 0) {
-                        functionStack[functionStack.length - 1].subtokens.push(curOperatorStack.pop());
+                while (!operatorStacks.peek().isEmpty() && 
+                        curToken.precedence() <= operatorStacks.peek().peek().precedence()) {
+                    if (!functionStack.isEmpty()) {
+                        functionStack.peek().subtokens.push(operatorStacks.peek().pop());
                     } else {
-                        postfix.push(curOperatorStack.pop());
+                        postfix.push(operatorStacks.peek().pop());
                     }
                 }
-
-                curOperatorStack.push(curToken);
+                operatorStacks.peek().push(curToken);
             }
         
         // Function
         } else if (curToken.isFunction()) {
             if (hasCoefficient) {
-                operatorStacks[operatorStacks.length - 1].push(tokenTypes.MULTIPLICATION);
+                operatorStacks.peek().push(tokenTypes.MULTIPLICATION);
                 hasCoefficient = false;
             }
 
-            if (functionStack.length != 0) {
-                functionStack[functionStack.length - 1].subtokens.push(curToken);
+            if (!functionStack.isEmpty()) {
+                functionStack.peek().subtokens.push(curToken);
             } else {
                 postfix.push(curToken);
             }
@@ -119,20 +150,20 @@ export function infixToPostfix(infix) {
         // Constant or Variable
         } else if (curToken.isConstant() || curToken.isVariable()) {
             if (hasCoefficient) {
-                operatorStacks[operatorStacks.length - 1].push(tokenTypes.MULTIPLICATION);
+                operatorStacks.peek().push(tokenTypes.MULTIPLICATION);
                 hasCoefficient = false;
             }
 
-            if (functionStack.length != 0) {
-                functionStack[functionStack.length - 1].subtokens.push(curToken);
+            if (!functionStack.isEmpty()) {
+                functionStack.peek().subtokens.push(curToken);
             } else {
                 postfix.push(curToken);
             }
         
         // Decimal
         } else if (curToken.type == tokenTypes.DECIMAL.type) {
-            if (functionStack.length != 0) {
-                functionStack[functionStack.length - 1].subtokens.push(curToken);
+            if (!functionStack.isEmpty()) {
+                functionStack.peek().subtokens.push(curToken);
             } else {
                 postfix.push(curToken);
             }
@@ -140,37 +171,35 @@ export function infixToPostfix(infix) {
         // Open Parenthesis
         } else if (curToken.type == tokenTypes.OPEN_PARENTHESIS.type) {
             if (hasCoefficient) {
-                operatorStacks[operatorStacks.length - 1].push(tokenTypes.MULTIPLICATION);
+                operatorStacks.peek().push(tokenTypes.MULTIPLICATION);
                 hasCoefficient = false;
             }
-            operatorStacks[operatorStacks.length - 1].push(tokenTypes.OPEN_PARENTHESIS);
+            operatorStacks.peek().push(tokenTypes.OPEN_PARENTHESIS);
 
         // Close Parentehsis
         } else if (curToken.type == tokenTypes.CLOSE_PARENTHESIS.type) {
-            let curOperatorStack = operatorStacks[operatorStacks.length - 1];
-            while (curOperatorStack.length != 0 && 
-                   curOperatorStack[curOperatorStack.length - 1].type != tokenTypes.OPEN_PARENTHESIS.type) {
-                if (functionStack.length != 0) {
-                    functionStack[functionStack.length - 1].subtokens.push(curOperatorStack.pop());
+            while (!operatorStacks.peek().isEmpty() && 
+                   operatorStacks.peek().peek().type != tokenTypes.OPEN_PARENTHESIS.type) {
+                if (!functionStack.isEmpty()) {
+                    functionStack.peek().subtokens.push(operatorStacks.peek().pop());
                 } else {
-                    postfix.push(curOperatorStack.pop());
+                    postfix.push(operatorStacks.peek().pop());
                 }
             }
-            curOperatorStack.pop();
+            operatorStacks.peek().pop();
         
         // Function Open Parenthesis
         } else if (curToken.type == tokenTypes.FUNCTION_OPEN.type) {
-            operatorStacks.push([]);
+            operatorStacks.push(new Stack());
 
         // Function Close Parenthesis
         } else if (curToken.type == tokenTypes.FUNCTION_CLOSE.type) {
-            let curOperatorStack = operatorStacks[operatorStacks.length - 1];
-            while (curOperatorStack.length != 0 && 
-                   curOperatorStack[curOperatorStack.length - 1].type != tokenTypes.OPEN_PARENTHESIS.type) {
-                if (functionStack.length != 0) {
-                    functionStack[functionStack.length - 1].subtokens.push(curOperatorStack.pop());
+            while (!operatorStacks.peek().length().isEmpty() && 
+                   operatorStacks.peek().peek().type != tokenTypes.OPEN_PARENTHESIS.type) {
+                if (!functionStack.isEmpty()) {
+                    functionStack.peek().subtokens.push(operatorStacks.peek().pop());
                 } else {
-                    postfix.push(curOperatorStack.pop());
+                    postfix.push(operatorStacks.peek().pop());
                 }
             }
 
@@ -181,17 +210,17 @@ export function infixToPostfix(infix) {
         }
     }
 
+    // Should only be base operator stack left, otherwise invalid operator 
     if (operatorStacks.length != 1) {
         throw new Error('Invalid Expression Format');
     }
 
     // Pop all operators from base stack
-    let curOperatorStack = operatorStacks[operatorStacks.length - 1];
-    while (curOperatorStack.length != 0) {
-        if (curOperatorStack[curOperatorStack.length - 1].type == tokenTypes.OPEN_PARENTHESIS.type) {
+    while (!operatorStacks.peek().isEmpty()) {
+        if (operatorStacks.peek().peek().type == tokenTypes.OPEN_PARENTHESIS.type) {
             throw new Error('Invalid Parenthesis Format');
         }
-        postfix.push(curOperatorStack.pop());
+        postfix.push(operatorStacks.peek().pop());
     }
 
     operatorStacks.pop();
