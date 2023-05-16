@@ -6,8 +6,10 @@ const canvas = document.getElementById('graph');
 const ctx = canvas.getContext('2d');
 
 const functionCanvas = document.createElement('canvas');
-functionCanvas.width = canvas.width;
-functionCanvas.height = canvas.height;
+
+// Give buffer for function to be hidden and will only redraw once panned far enough
+functionCanvas.width = canvas.width * 2;
+functionCanvas.height = canvas.height * 2;
 
 const functionCtx = functionCanvas.getContext('2d');
 
@@ -15,7 +17,7 @@ const gridSize = 100;
 const gridColor = '#fff';
 const backgroundColor = '#333';
 
-const increment = 0.02;
+const increment = 0.1;
 const panSensitivity = 1;
 
 var xRange = {
@@ -33,9 +35,11 @@ var yScale = canvas.height / (yRange.end - yRange.start);
 var zoomScale = 1;
 
 var posX = 0;
-var posY = -(canvas.width / 8);
+var posY = 0;
 var lastX = 0;
 var lastY = 0;
+
+var lastCoord;
 
 var isDragging = false;
 
@@ -62,7 +66,7 @@ canvas.addEventListener('mousemove', event => {
 
         posX += deltaX;
         posY -= deltaY;
-
+        
         updateRanges(deltaX, deltaY);
         render();
 
@@ -87,19 +91,6 @@ canvas.addEventListener('wheel', event => {
   
 });
 
-
-function canvasToGraphCoordinate(x, y) {
-    var graphX = (x - (canvas.width / 2)) / xScale
-    var graphY = (y - (canvas.height / 2)) / -yScale
-    return { x: graphX, y: graphY };
-}
-
-function graphToCanvasCoordinate(x, y) {
-    var coordX = (canvas.width / 2) + (x * xScale);
-    var coordY = (canvas.height / 2) - (y * yScale);
-    return { x: coordX, y: coordY };
-}
-
 export function render() {
     ctx.save();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -109,8 +100,31 @@ export function render() {
     ctx.scale(zoomScale, zoomScale);
     drawGrid();
     drawLabels();
-    ctx.drawImage(functionCanvas, 0, 0);
+    if (checkFunctionRedraw()) {
+        drawFunctions();
+    }
+    ctx.drawImage(functionCanvas, -(canvas.width / 2), -(canvas.height / 2));
     ctx.restore();
+}
+
+
+function updateRanges(deltaX, deltaY) {
+    var canvasStartRange = graphToCanvasCoordinate(xRange.start, yRange.start);
+    var canvasEndRange = graphToCanvasCoordinate(xRange.end, yRange.end);
+
+    canvasStartRange.x -= deltaX;
+    canvasEndRange.x -= deltaX;
+
+    canvasStartRange.y += deltaY;
+    canvasEndRange.y += deltaY;
+
+    var newStartRange = canvasToGraphCoordinate(canvasStartRange.x, canvasStartRange.y);
+    var newEndRange = canvasToGraphCoordinate(canvasEndRange.x, canvasEndRange.y);
+
+    xRange.start = newStartRange.x;
+    xRange.end = newEndRange.x;
+    yRange.start = newStartRange.y;
+    yRange.end = newEndRange.y;
 }
 
 function drawGrid() {
@@ -120,6 +134,7 @@ function drawGrid() {
 
     var startDraw = graphToCanvasCoordinate(xRange.start, yRange.start);
     var endDraw = graphToCanvasCoordinate(xRange.end, yRange.end);
+
 
     // draw x axes
     for (var i = startDraw.x - xScale; i < endDraw.x; i += xScale) {
@@ -131,7 +146,7 @@ function drawGrid() {
     }
 
     // draw y axes
-    for (var i = startDraw.y; i > endDraw.y; i -= yScale) {
+    for (var i = endDraw.y - xScale; i < startDraw.y; i += yScale) {
         ctx.beginPath();
         ctx.moveTo(startDraw.x, (yScale - (i % yScale)) + i);
         ctx.lineTo(endDraw.x, (yScale - (i % yScale)) + i);
@@ -142,7 +157,6 @@ function drawGrid() {
     ctx.lineWidth = 3;
     ctx.globalAlpha = 1;
 
-    
     // draw x origin
     ctx.beginPath();
     ctx.moveTo(startDraw.x, canvas.height / 2);
@@ -180,9 +194,9 @@ function drawLabels() {
     }
 
     // y labels
-    for (var i = startDraw.y; i > endDraw.y; i -= yScale) {
+    for (var i = endDraw.y - yScale; i < startDraw.y; i += yScale) {
         var value = canvasToGraphCoordinate(0, (yScale - (i % yScale)) + i).y;
-        // origin label already drawn
+        // 0 already drawn
         if (value != 0) {
             ctx.fillText(value, canvas.width / 2 + (gridSize / 16), (yScale - (i % yScale)) + i + (gridSize / 16))
         }
@@ -206,17 +220,20 @@ function drawFunction(index) {
     functionCtx.globalAlpha = 1;
 
     functionCtx.beginPath();
-    functionCtx.moveTo(graphToCanvasCoordinate(xRange.start * 2, 0).x, graphToCanvasCoordinate(0, f(xRange.start * 2)).y);
-    
-    for (var x = xRange.start; x <= xRange.end; x += increment) {
-        var y = f(x);
+   
+    var startCoord = graphToFunctionCanvasCoordinate(xRange.start - (xScale / 10), f(xRange.start - (xScale / 10)));
+    console.log (startCoord.x - posX, startCoord.y - posY)
+    functionCtx.moveTo(startCoord.x - posX, startCoord.y - posY);
 
-        var coord = graphToCanvasCoordinate(x, y);
+    for (var x = xRange.start - 10; x <= xRange.end + 10; x += increment) {
+        var y = f(x);
+        var coord = graphToFunctionCanvasCoordinate(x, y);
         functionCtx.lineTo(coord.x, coord.y);
     }
 
     functionCtx.stroke();
     functionCtx.closePath();
+    
 }
 
 export function addFunction(expression, color) {
@@ -228,24 +245,34 @@ export function addFunction(expression, color) {
     render();
 }
 
-function updateRanges(deltaX, deltaY) {
-    var canvasStartRange = graphToCanvasCoordinate(xRange.start, yRange.start);
-    var canvasEndRange = graphToCanvasCoordinate(xRange.end, yRange.end);
-
-    canvasStartRange.x -= deltaX;
-    canvasEndRange.x -= deltaX;
-
-    canvasStartRange.y += deltaY;
-    canvasEndRange.y += deltaY;
-
-    var newStartRange = canvasToGraphCoordinate(canvasStartRange.x, canvasStartRange.y);
-    var newEndRange = canvasToGraphCoordinate(canvasEndRange.x, canvasEndRange.y);
-
-    xRange.start = newStartRange.x;
-    xRange.end = newEndRange.x;
-    yRange.start = newStartRange.y;
-    yRange.end = newEndRange.y;
+function canvasToGraphCoordinate(x, y) {
+    var graphX = (x - (canvas.width / 2)) / xScale;
+    var graphY = (y - (canvas.height / 2)) / -yScale;
+    return { x: graphX, y: graphY };
 }
+
+function graphToCanvasCoordinate(x, y) {
+    var coordX = (canvas.width / 2) + (x * xScale);
+    var coordY = (canvas.height / 2) - (y * yScale);
+    return { x: coordX, y: coordY };
+}
+
+function graphToFunctionCanvasCoordinate(x, y) {
+    var coordX = (functionCanvas.width / 2) + (x * xScale);
+    var coordY = (functionCanvas.height / 2) - (y * yScale);
+    return { x: coordX, y: coordY };
+}
+
+function checkFunctionRedraw() {
+    if (((Math.ceil(posX) % (canvas.width / 4) == 0) && posX != 0) ||
+        (Math.ceil(posY) % (canvas.height / 4) == 0) && posY != 0)  {
+            console.log('redraw');
+        return true;
+    }
+
+    return false;
+}
+
 
 
   

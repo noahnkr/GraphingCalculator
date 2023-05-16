@@ -35,7 +35,7 @@ class Stack {
 
 
 /* Converts a list of infix tokens into postfix format. */
-export function infixToPostfix(infix) {
+export function toPostfix(infix) {
     var postfix = []; // return value
     var functionStack = new Stack();;
     var operatorStacks = new Stack();
@@ -194,7 +194,7 @@ export function infixToPostfix(infix) {
 
         // Function Close Parenthesis
         } else if (curToken.type == tokenTypes.FUNCTION_CLOSE.type) {
-            while (!operatorStacks.peek().length().isEmpty() && 
+            while (!operatorStacks.peek().isEmpty() && 
                    operatorStacks.peek().peek().type != tokenTypes.OPEN_PARENTHESIS.type) {
                 if (!functionStack.isEmpty()) {
                     functionStack.peek().subtokens.push(operatorStacks.peek().pop());

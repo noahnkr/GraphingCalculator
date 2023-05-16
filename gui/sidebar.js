@@ -48,8 +48,6 @@ export function addInput() {
     functionContainer.appendChild(functionLabel);
     functionContainer.appendChild(functionInput);
 
-    
-    
     var container = document.getElementById('functions');
     container.appendChild(functionContainer);
 }
