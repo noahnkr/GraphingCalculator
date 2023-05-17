@@ -43,9 +43,11 @@ var function_yRange = {
 var function_xOffset = 0;
 var function_yOffset = 0;
 
-var xScale = canvas.width / (xRange.end - xRange.start);
-var yScale = canvas.height / (yRange.end - yRange.start);
+
 var zoomScale = 1;
+var xScale = canvas.width / (xRange.end - xRange.start) * zoomScale;
+var yScale = canvas.height / (yRange.end - yRange.start) * zoomScale;
+
 
 var posX = 0;
 var posY = 0;
@@ -255,7 +257,7 @@ function drawFunction(index) {
     functionCtx.beginPath();
     var startCoord = graphToFunctionCanvasCoordinate(function_xRange.start, f(function_xRange.start));
     functionCtx.moveTo(startCoord.x, startCoord.y);
-    
+
     for (var x = function_xRange.start; x < function_xRange.end; x += increment) {
             var y = f(x);
             var coord = graphToFunctionCanvasCoordinate(x, y);
