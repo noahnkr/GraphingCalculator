@@ -1,11 +1,29 @@
+import MathExpression from "../calc/expression.js";
 import { functions, addFunction, drawFunctions, render } from "./grapher.js";
 
 const functionColors = ['red', 'blue', 'lime', 'yellow', 'orange', 'purple', 'cyan'];
+
+const addInputButton = document.getElementById('add-input-button');
+addInputButton.addEventListener('click', () => { addInput() });
 
 export function updateInputValues() {
     for (var i in functions) {
         var value = document.getElementById('function-input-' + i).value;
         functions[i].expression = value;
+
+        if (value === '') {
+            document.getElementById('function-symbol-' + i).src = '';
+        } else {
+            document.getElementById('function-symbol-' + i).src = '../assets/function.png';
+        }
+
+        try {
+            MathExpression.evaluate(value);
+        } catch(err) {
+            if (value !=- '') {
+                document.getElementById('function-symbol-' + i).src = '../assets/caution.png';
+            }
+        }
     }
 
     drawFunctions();
@@ -25,16 +43,15 @@ export function addInput() {
     colorLabel.id = 'color-label-' + index;
     colorLabel.style.backgroundColor = functionColors[index % functionColors.length];
 
-    var functionSymbol = document.createElement('span');
-    functionSymbol.className = 'material-symbols-outlined function-symbol';
-    functionSymbol.innerHTML = 'function';
-    functionSymbol.style.fontSize = '50px';
+    var functionSymbol = document.createElement('img');
+    functionSymbol.className = 'function-symbol';
+    functionSymbol.id = 'function-symbol-' + index;
+    functionSymbol.src = '';
 
     var functionLabel = document.createElement('div');
     functionLabel.className = 'function-label';
     functionLabel.onclick = () => {
-        functionLabel.style.backgroundColor = '#999';
-        functionSymbol.style.color = '#444';
+
     }
     functionLabel.appendChild(functionSymbol);
 

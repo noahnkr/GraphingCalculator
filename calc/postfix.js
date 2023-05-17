@@ -118,7 +118,6 @@ export function toPostfix(infix) {
                     operatorStacks[0].push(tokens.MULTIPLICATION);
                 }
                 
-            
             // Operator
             } else {
                 while (!operatorStacks.peek().isEmpty() && 

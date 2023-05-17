@@ -58,12 +58,17 @@
 }
 
 .function-label {
-    width: 80px;
-    background-color: #444;
+    width: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
+    background-color: #444;
     border-right: 2px solid #222;
+    margin-right: 5px;
+}
+
+#functions {
+    background-color: #ddd;
 }
 
 .function-label:hover {
@@ -71,12 +76,13 @@
 }
 
 .function-symbol {
-    color: #ccc;
+    margin-left: 7px;
+    margin-right: 5px;
 }
 
 .function-input {
     font-family: 'Times New Roman', Times, serif;
-    font-size: 28px;
+    font-size: 24px;
     font-style: italic;
     color: #444;
     border: none;
@@ -85,6 +91,7 @@
     width: 100%;
     height: 100%;
     align-self: center;
+    margin-bottom: 4px;
 }
 
 #button-container {

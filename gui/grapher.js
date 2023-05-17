@@ -251,20 +251,20 @@ function drawFunction(index) {
     functionCtx.strokeStyle = functions[index].color;
     functionCtx.lineWidth = 3;
     functionCtx.globalAlpha = 1;
-  
+
     functionCtx.beginPath();
     var startCoord = graphToFunctionCanvasCoordinate(function_xRange.start, f(function_xRange.start));
     functionCtx.moveTo(startCoord.x, startCoord.y);
-
+    
     for (var x = function_xRange.start; x < function_xRange.end; x += increment) {
-        var y = f(x);
-        var coord = graphToFunctionCanvasCoordinate(x, y);
-        functionCtx.lineTo(coord.x, coord.y);
+            var y = f(x);
+            var coord = graphToFunctionCanvasCoordinate(x, y);
+            functionCtx.lineTo(coord.x, coord.y);  
     }
-
 
     functionCtx.stroke();
     functionCtx.closePath();
+    
   }
 
 export function addFunction(expression, color) {
@@ -293,6 +293,8 @@ function graphToFunctionCanvasCoordinate(x, y) {
     var coordY = (functionCanvas.height / 2) - (y * yScale) + function_yOffset;
     return { x: coordX, y: coordY };
 }
+
+render();
 
 
 
