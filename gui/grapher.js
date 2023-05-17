@@ -30,6 +30,19 @@ var yRange = {
     end: ((canvas.height / 2) / gridSize)
 };
 
+var function_xRange = {
+    start: -((functionCanvas.width / 2) / gridSize),
+    end: ((functionCanvas.width / 2) / gridSize)
+}
+
+var function_yRange = {
+    start: -((functionCanvas.height / 2) / gridSize),
+    end: ((functionCanvas.height / 2) / gridSize)
+}
+
+var function_xOffset = 0;
+var function_yOffset = 0;
+
 var xScale = canvas.width / (xRange.end - xRange.start);
 var yScale = canvas.height / (yRange.end - yRange.start);
 var zoomScale = 1;
@@ -38,8 +51,6 @@ var posX = 0;
 var posY = 0;
 var lastX = 0;
 var lastY = 0;
-
-var lastCoord;
 
 var isDragging = false;
 
@@ -66,6 +77,8 @@ canvas.addEventListener('mousemove', event => {
 
         posX += deltaX;
         posY -= deltaY;
+
+        
         
         updateRanges(deltaX, deltaY);
         render();
@@ -100,10 +113,7 @@ export function render() {
     ctx.scale(zoomScale, zoomScale);
     drawGrid();
     drawLabels();
-    if (checkFunctionRedraw()) {
-        drawFunctions();
-    }
-    ctx.drawImage(functionCanvas, -(canvas.width / 2), -(canvas.height / 2));
+    ctx.drawImage(functionCanvas, -(canvas.width / 2) - function_xOffset, -(canvas.height / 2) - function_yOffset);
     ctx.restore();
 }
 
@@ -125,6 +135,30 @@ function updateRanges(deltaX, deltaY) {
     xRange.end = newEndRange.x;
     yRange.start = newStartRange.y;
     yRange.end = newEndRange.y;
+
+    if (xRange.start <= function_xRange.start) {
+        function_xRange.start -= (xScale / 10);
+        function_xRange.end -= (xScale / 10);
+        function_xOffset += functionCanvas.width / 4;
+        drawFunctions();
+    } else if (xRange.end >=  function_xRange.end) {
+        function_xRange.start += (xScale / 10);
+        function_xRange.end += (xScale / 10);
+        function_xOffset -= functionCanvas.width / 4;
+        drawFunctions();
+    }
+
+    if (yRange.start <= function_yRange.start) {
+        function_yRange.start -= (yScale / 10);
+        function_yRange.end -= (yScale / 10);
+        function_yOffset -= functionCanvas.height / 4;
+        drawFunctions();
+    } else if (yRange.end >= function_yRange.end) {
+        function_yRange.start += (yScale / 10);
+        function_yRange.end += (yScale / 10);
+        function_yOffset += functionCanvas.height / 4;
+        drawFunctions();
+    }
 }
 
 function drawGrid() {
@@ -203,7 +237,6 @@ function drawLabels() {
     }
 }
 
-
 export function drawFunctions() {
     functionCtx.clearRect(0, 0, functionCanvas.width, functionCanvas.height);
     for (var i in functions) {
@@ -218,23 +251,21 @@ function drawFunction(index) {
     functionCtx.strokeStyle = functions[index].color;
     functionCtx.lineWidth = 3;
     functionCtx.globalAlpha = 1;
-
+  
     functionCtx.beginPath();
-   
-    var startCoord = graphToFunctionCanvasCoordinate(xRange.start - (xScale / 10), f(xRange.start - (xScale / 10)));
-    console.log (startCoord.x - posX, startCoord.y - posY)
-    functionCtx.moveTo(startCoord.x - posX, startCoord.y - posY);
+    var startCoord = graphToFunctionCanvasCoordinate(function_xRange.start, f(function_xRange.start));
+    functionCtx.moveTo(startCoord.x, startCoord.y);
 
-    for (var x = xRange.start - 10; x <= xRange.end + 10; x += increment) {
+    for (var x = function_xRange.start; x < function_xRange.end; x += increment) {
         var y = f(x);
         var coord = graphToFunctionCanvasCoordinate(x, y);
         functionCtx.lineTo(coord.x, coord.y);
     }
 
+
     functionCtx.stroke();
     functionCtx.closePath();
-    
-}
+  }
 
 export function addFunction(expression, color) {
     functions.push({
@@ -258,19 +289,9 @@ function graphToCanvasCoordinate(x, y) {
 }
 
 function graphToFunctionCanvasCoordinate(x, y) {
-    var coordX = (functionCanvas.width / 2) + (x * xScale);
-    var coordY = (functionCanvas.height / 2) - (y * yScale);
+    var coordX = (functionCanvas.width / 2) + (x * xScale) + function_xOffset;
+    var coordY = (functionCanvas.height / 2) - (y * yScale) + function_yOffset;
     return { x: coordX, y: coordY };
-}
-
-function checkFunctionRedraw() {
-    if (((Math.ceil(posX) % (canvas.width / 4) == 0) && posX != 0) ||
-        (Math.ceil(posY) % (canvas.height / 4) == 0) && posY != 0)  {
-            console.log('redraw');
-        return true;
-    }
-
-    return false;
 }
 
 
