@@ -255,17 +255,35 @@ function drawFunction(index) {
     functionCtx.globalAlpha = 1;
 
     functionCtx.beginPath();
-    var startCoord = graphToFunctionCanvasCoordinate(function_xRange.start, f(function_xRange.start));
-    functionCtx.moveTo(startCoord.x, startCoord.y);
+    var startCoord = null
+    var prevCoord = null;
 
-    for (var x = function_xRange.start; x < function_xRange.end; x += increment) {
-            var y = f(x);
-            var coord = graphToFunctionCanvasCoordinate(x, y);
-            functionCtx.lineTo(coord.x, coord.y);  
+    try {
+        for (var x = function_xRange.start; x < function_xRange.end; x += increment) {
+                var y = f(x);
+                var coord = graphToFunctionCanvasCoordinate(x, y);
+
+                if (prevCoord !== null && Math.abs(coord.y - prevCoord.y) < functionCanvas.height / 2) {
+                    functionCtx.lineTo(coord.x, coord.y);
+                } else {
+                    functionCtx.moveTo(coord.x, coord.y);
+                }
+
+                prevCoord = coord;
+                
+                // Save starting point for closing path
+                if (startCoord === null) {
+                    startCoord = coord;
+                }
+        }
+    
+        functionCtx.stroke();
+        functionCtx.lineTo(startCoord.x, startCoord.y);
+        functionCtx.closePath();
+        
+    } catch (err) {
+        console.log('Error drawing function: ' + functions[index].expression)
     }
-
-    functionCtx.stroke();
-    functionCtx.closePath();
     
   }
 
