@@ -250,15 +250,14 @@ export function drawFunctions() {
 
 function drawFunction(index) {
     var f = MathExpression.makeFunction(functions[index].expression);
-    functionCtx.strokeStyle = functions[index].color;
+    functionCtx.strokeStyle = functions[index].color.function;
     functionCtx.lineWidth = 3;
     functionCtx.globalAlpha = 1;
 
-    functionCtx.beginPath();
-    var startCoord = null
-    var prevCoord = null;
-
     try {
+        functionCtx.beginPath();
+        var startCoord = null
+        var prevCoord = null;
         for (var x = function_xRange.start; x < function_xRange.end; x += increment) {
                 var y = f(x);
                 var coord = graphToFunctionCanvasCoordinate(x, y);
@@ -280,9 +279,9 @@ function drawFunction(index) {
         functionCtx.stroke();
         functionCtx.lineTo(startCoord.x, startCoord.y);
         functionCtx.closePath();
-        
+
     } catch (err) {
-        console.log('Error drawing function: ' + functions[index].expression)
+        console.log('Error drawing function: ' + functions[index].expression);
     }
     
   }

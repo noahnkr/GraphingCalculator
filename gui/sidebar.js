@@ -4,55 +4,64 @@ import { functions, addFunction, drawFunctions, render } from "./grapher.js";
 const functionColors = {
     red: {
         function: '#E57373',
-        focus: '#FFEBEE'
+        focus: '#FFEBEE',
+        src: '../assets/functions/red.png'
     },
     magenta: {
         function: '#F06292',
-        focus: '#FCE4EC'
+        focus: '#FCE4EC',
+        src: '../assets/functions/magenta.png'
+        
     },
     purple: {
         function: '#BA68C8',
-        focus: '#F3E5F5'
+        focus: '#F3E5F5',
+        src: '../assets/functions/purple.png'
     },
     darkblue: {
         function: '#7986CB',
-        focus: '#E8EAF6'
+        focus: '#E8EAF6',
+        src: '../assets/functions/darkblue.png'
     },
     lightblue: {
         function: '#4FC3F7',
-        focus: '#E1F5FE'
+        focus: '#E1F5FE',
+        src: '../assets/functions/lightblue.png'
     },
     cyan: {
-        function: '#F9FBE7',
-        focus: '#F9FBE7'
+        function: '#4DD0E1',
+        focus: '#E0F7FA',
+        src: '../assets/functions/cyan.png'
     },
     teal: {
         function: '#009688',
-        focus: '#E0F2F1'
+        focus: '#E0F2F1',
+        src: '../assets/functions/teal.png'
     },
     green: {
-        function: '#E1F5FE',
-        focus: '#E8F5E9'
-    },
-    lime: {
-        function: '#DCE775',
-        focus: '#F9FBE7'
+        function: '#81C784',
+        focus: '#E8F5E9',
+        src: '../assets/functions/green.png'
     },
     yellow: {
-        function: '#F9FBE7',
-        focus: '#FFFDE7'
-    },
-    amber: {
-        function: '#F9FBE7',
-        focus: '#F9FBE7'
+        function: '#FFF176',
+        focus: '#FFFDE7',
+        src: '../assets/functions/yellow.png'
     },
     orange: {
-        function: '#F9FBE7',
-        focus: '#F9FBE7'
+        function: '#FFB74D',
+        focus: '#FFF8E1',
+        src: '../assets/functions/orange.png'
+    },
+    amber: {
+        function: '#FF8A65',
+        focus: '#FBE9E7',
+        src: '../assets/functions/amber.png'
     },
     bluegrey: {
         function: '#90A4AE',
-        focus: '#ECEFF1'
+        focus: '#ECEFF1',
+        src: '../assets/functions/bluegrey.png'
     }
 }
 
@@ -67,7 +76,7 @@ export function updateInputValues() {
         if (value === '') {
             document.getElementById('function-symbol-' + i).src = '';
         } else {
-            document.getElementById('function-symbol-' + i).src = '../assets/function.png';
+            document.getElementById('function-symbol-' + i).src = functions[i].color.src;
         }
 
         try {
@@ -90,7 +99,7 @@ export function addInput() {
     var rand = Math.floor(Math.random() * values.length);
     const color = values[rand];
 
-    addFunction('', color.function);
+    addFunction('', color);
 
     var functionContainer = document.createElement('div');
     functionContainer.className = 'function-container';
