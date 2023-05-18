@@ -1,3 +1,14 @@
+import { tokens } from "./token";
+
+
+class Node {
+    constructor(token, left, right) {
+        this.token = token;
+        this.left = left;
+        this.right = right;
+    }
+}
+
 export function buildTree(postfix) {
     var stack = [];
 
@@ -19,13 +30,17 @@ export function buildTree(postfix) {
 }
 
 export function solve(node, x) {
+
     if (node.token.isOperand() || node.token.isConstant()) {
         return node.token.value;
     }
 
     if (node.token.isOperator()) {
+
+        if (node.token.type == tokens.DIVISION && node.token.right)
+
         return node.token.math(solve(node.left, x),
-                               solve(node.right, x));
+                                solve(node.right, x));
     }
 
     if (node.token.isFunction()) {
@@ -36,16 +51,7 @@ export function solve(node, x) {
         return x;
     }
 
-    throw new Error('Unkown operation or function.');
-}
-
-
-class Node {
-    constructor(token, left, right) {
-        this.token = token;
-        this.left = left;
-        this.right = right;
-    }
+    throw new Error('Unkown operation or function');
 }
 
 export function drawTree(root) {
