@@ -19,7 +19,7 @@ const gridSize = 100;
 const gridColor = '#fff';
 const backgroundColor = '#333';
 
-const increment = 0.1;
+const increment = 0.02;
 const panSensitivity = 1;
 
 // range visible on canvas
@@ -263,13 +263,20 @@ function drawFunction(index) {
         functionCtx.beginPath();
         var startCoord = null
         var prevCoord = null;
-        for (var x = function_xRange.start; x < function_xRange.end; x += increment) {
+        for (var x = function_xRange.start; x <= function_xRange.end; x += increment) {
                 var y = f(x);
                 var coord = graphToFunctionCanvasCoordinate(x, y);
 
-                if (prevCoord !== null && Math.abs(coord.y - prevCoord.y) < functionCanvas.height / 2) {
+                // Check if next coordinate is not too far away or is not a real number
+                if ((prevCoord !== null && Math.abs(coord.y - prevCoord.y) < functionCanvas.height / 2) &&
+                    isFinite(y) && isFinite(prevCoord.y)) {
                     functionCtx.lineTo(coord.x, coord.y);
+
+                // Otherwise, start a new stoke
                 } else {
+                    functionCtx.stroke()
+                    functionCtx.closePath();
+                    functionCtx.beginPath();
                     functionCtx.moveTo(coord.x, coord.y);
                 }
 
@@ -287,7 +294,6 @@ function drawFunction(index) {
 
     } catch (err) {
         console.log('Error drawing function: ' + functions[index].expression);
-    
     }
     
   }
@@ -321,7 +327,4 @@ function graphToFunctionCanvasCoordinate(x, y) {
 
 render();
 
-  
-var root = Expression.evaluate('1/x^2');
-console.log(root);
 

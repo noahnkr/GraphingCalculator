@@ -1,4 +1,4 @@
-import { tokens } from "./token";
+import { tokens } from "./token.js";
 
 
 class Node {
@@ -36,9 +36,6 @@ export function solve(node, x) {
     }
 
     if (node.token.isOperator()) {
-
-        if (node.token.type == tokens.DIVISION && node.token.right)
-
         return node.token.math(solve(node.left, x),
                                 solve(node.right, x));
     }
