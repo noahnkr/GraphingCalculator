@@ -1,4 +1,4 @@
-import MathExpression from "../calc/expression.js";
+import Expression from "../calc/expression.js";
 
 export var functions = [];
 var criticalPoints = [];
@@ -254,12 +254,12 @@ export function drawFunctions() {
 }
 
 function drawFunction(index) {
-    var f = MathExpression.makeFunction(functions[index].expression);
+    var f = Expression.makeFunction(functions[index].expression);
     functionCtx.strokeStyle = functions[index].color.function;
     functionCtx.lineWidth = 3;
     functionCtx.globalAlpha = 1;
 
-    try {
+     try {
         functionCtx.beginPath();
         var startCoord = null
         var prevCoord = null;
@@ -287,6 +287,7 @@ function drawFunction(index) {
 
     } catch (err) {
         console.log('Error drawing function: ' + functions[index].expression);
+    
     }
     
   }
@@ -298,11 +299,6 @@ export function addFunction(expression, color) {
     });
 
     render();
-}
-
-function drawPoints() {
-    drawRoots();
-    drawIntercepts();
 }
 
 function canvasToGraphCoordinate(x, y) {
@@ -326,6 +322,6 @@ function graphToFunctionCanvasCoordinate(x, y) {
 render();
 
   
-var root = MathExpression.calculateRoots('x^2 - 2', 0, 0);
+var root = Expression.evaluate('1/x^2');
 console.log(root);
 

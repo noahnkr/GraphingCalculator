@@ -6,7 +6,7 @@ const h = 0.0001; // h, the smaller the value the higher the accuracy
 const maxIterations = 100;
 const tolerance = 0.0001; 
 
-class MathExpression {
+export default class Expression {
 
     // Evaluates an expression for some value of x, or 0 if not provided.
     static evaluate(expression, x) {
@@ -19,7 +19,7 @@ class MathExpression {
     // Returns a function that can be evaluated at some value of x
     static makeFunction(expression) {
         return function(x) {
-            return MathExpression.evaluate(expression, x);
+            return Expression.evaluate(expression, x);
         }
     }
 
@@ -32,7 +32,7 @@ class MathExpression {
         let dx = (y1 - y) / h; 
         return dx;
     }
-
+ 
     // Uses Newton–Raphson's method to calculate root of an expression based on an initial guess
     static calculateRoots(expression, x) {
         let f = this.makeFunction(expression);
@@ -51,15 +51,5 @@ class MathExpression {
         return null;
     }
 
-    static calculateInterceps(expression_1, expression_2, )
-
-    static drawTree(expression) {
-        let tokens = toPostfix(tokenize(expression));
-        condense(tokens);
-        let root = buildTree(tokens);
-        return drawTree(root);
-    }
+    
 }
-
-
-export default MathExpression;

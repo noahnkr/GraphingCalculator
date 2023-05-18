@@ -1,4 +1,4 @@
-import MathExpression from "../calc/expression.js";
+import Expression from "../calc/expression.js";
 import { functions, addFunction, drawFunctions, render } from "./grapher.js";
 
 const functionColors = {
@@ -80,7 +80,7 @@ export function updateInputValues() {
         }
 
         try {
-            MathExpression.evaluate(value);
+            Expression.evaluate(value);
         } catch(err) {
             if (value !=- '') {
                 document.getElementById('function-symbol-' + i).src = '../assets/caution.png';
