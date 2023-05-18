@@ -1,6 +1,8 @@
 import MathExpression from "../calc/expression.js";
 
 export var functions = [];
+var criticalPoints = [];
+var intercepts = [];
 
 const canvas = document.getElementById('graph');
 const ctx = canvas.getContext('2d');
@@ -20,6 +22,7 @@ const backgroundColor = '#333';
 const increment = 0.1;
 const panSensitivity = 1;
 
+// range visible on canvas
 var xRange = {
     start: -((canvas.width / 2) / gridSize),
     end: ((canvas.width / 2) / gridSize)
@@ -30,6 +33,7 @@ var yRange = {
     end: ((canvas.height / 2) / gridSize)
 };
 
+// range of function drawn
 var function_xRange = {
     start: -((functionCanvas.width / 2) / gridSize),
     end: ((functionCanvas.width / 2) / gridSize)
@@ -47,7 +51,6 @@ var function_yOffset = 0;
 var zoomScale = 1;
 var xScale = canvas.width / (xRange.end - xRange.start) * zoomScale;
 var yScale = canvas.height / (yRange.end - yRange.start) * zoomScale;
-
 
 var posX = 0;
 var posY = 0;
@@ -67,7 +70,7 @@ canvas.addEventListener('mouseup', () => {
     isDragging = false;
 });
 
-canvas.addEventListener('mouseleave',() => {
+canvas.addEventListener('mouseleave', () => {
     isDragging = false
 });
 
@@ -115,6 +118,8 @@ export function render() {
     ctx.scale(zoomScale, zoomScale);
     drawGrid();
     drawLabels();
+    // Draws image of function canvas onto graph canvas at relative position of the graph.
+    // Improves performnce by not redrawing each function on each render.
     ctx.drawImage(functionCanvas, -(canvas.width / 2) - function_xOffset, -(canvas.height / 2) - function_yOffset);
     ctx.restore();
 }
@@ -295,6 +300,11 @@ export function addFunction(expression, color) {
     render();
 }
 
+function drawPoints() {
+    drawRoots();
+    drawIntercepts();
+}
+
 function canvasToGraphCoordinate(x, y) {
     var graphX = (x - (canvas.width / 2)) / xScale;
     var graphY = (y - (canvas.height / 2)) / -yScale;
@@ -315,8 +325,7 @@ function graphToFunctionCanvasCoordinate(x, y) {
 
 render();
 
-
-
   
-
+var root = MathExpression.calculateRoots('x^2 - 2', 0, 0);
+console.log(root);
 

@@ -112,8 +112,6 @@ export function addInput() {
 
     var functionLabel = document.createElement('div');
     functionLabel.className = 'function-label';
-
-    
     functionLabel.appendChild(functionSymbol);
 
     var functionInput = document.createElement('input');
@@ -123,7 +121,6 @@ export function addInput() {
     functionInput.oninput = updateInputValues;
 
     functionInput.addEventListener('focus', () => {
-        
         functionContainer.style.backgroundColor = color.focus;
     });
     functionInput.addEventListener('blur', () => {
