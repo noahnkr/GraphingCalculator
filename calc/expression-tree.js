@@ -30,10 +30,20 @@ export function buildTree(postfix) {
 }
 
 export function solve(node, x) {
-
     if (node.token.isOperand() || node.token.isConstant()) {
         return node.token.value;
     }
+    
+    if (node.token.isVariable()) {
+        if (node.token.show === 'x') {
+            if (x === undefined) {
+                throw new Error('Unassinged variable: x');
+            }
+            return x;
+        }
+        return node.token.value;
+    }
+
 
     if (node.token.isOperator()) {
         return node.token.math(solve(node.left, x),
@@ -41,15 +51,36 @@ export function solve(node, x) {
     }
 
     if (node.token.isFunction()) {
-        return node.token.math(solve(node.left, x), 0);
-    }
-
-    if (node.token.isVariable()) {
-        return x;
+        return node.token.math(solve(node.left, x));
     }
 
     throw new Error('Unkown operation or function');
 }
+
+function getVariables(root) {
+    return getVariablesRec(root, []);
+}
+
+function getVariablesRec(node, vars) {
+    if (node.left == null && node.right == null) {
+        return vars;
+    }
+
+    if (node.type == tokens.VARIABLE.type) {
+        let variable = {};
+        variable[node.type.show] = 0;
+        vars.push(variable);
+    }
+
+    if (node.left != null) {
+        getVarialbes(node.left, vars);
+    }
+
+    if (node.right != null) {
+        getVariables(node.right, vars);
+    }
+}
+
 
 export function drawTree(root) {
     if (root === null) {

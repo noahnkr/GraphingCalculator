@@ -1,6 +1,8 @@
-import Expression from "../calc/expression.js";
+import Expression from '../calc/expression.js';
 
 export var functions = [];
+export var variables = [];
+
 var criticalPoints = [];
 var intercepts = [];
 
@@ -23,7 +25,7 @@ const increment = 0.02;
 const panSensitivity = 1;
 
 // range visible on canvas
-var xRange = {
+export var xRange = {
     start: -((canvas.width / 2) / gridSize),
     end: ((canvas.width / 2) / gridSize)
 };
@@ -83,8 +85,6 @@ canvas.addEventListener('mousemove', event => {
         posX += deltaX;
         posY -= deltaY;
 
-        
-        
         updateRanges(deltaX, deltaY);
         render();
 
@@ -247,24 +247,26 @@ function drawLabels() {
 export function drawFunctions() {
     functionCtx.clearRect(0, 0, functionCanvas.width, functionCanvas.height);
     for (var i in functions) {
-        if (functions[i].expression !== '') {
+
+        // Don't draw function if the expression is empty or is a variable
+        if (functions[i].expression !== '' && !/=/.test(functions[i].expression) ) {
             drawFunction(i);
         }
     }
 }
 
 function drawFunction(index) {
-    var f = Expression.makeFunction(functions[index].expression);
-    functionCtx.strokeStyle = functions[index].color.function;
-    functionCtx.lineWidth = 3;
-    functionCtx.globalAlpha = 1;
+    try {
+        var f = Expression.makeFunction(functions[index].expression);
+        functionCtx.strokeStyle = functions[index].color.function;
+        functionCtx.lineWidth = 3;
+        functionCtx.globalAlpha = 1;
 
-     try {
         functionCtx.beginPath();
         var startCoord = null
         var prevCoord = null;
         for (var x = function_xRange.start; x <= function_xRange.end; x += increment) {
-                var y = f(x);
+                var y = f(x, variables);
                 var coord = graphToFunctionCanvasCoordinate(x, y);
 
                 // Check if next coordinate is not too far away or is not a real number
@@ -295,8 +297,7 @@ function drawFunction(index) {
     } catch (err) {
         console.log('Error drawing function: ' + functions[index].expression);
     }
-    
-  }
+}
 
 export function addFunction(expression, color) {
     functions.push({
@@ -306,6 +307,7 @@ export function addFunction(expression, color) {
 
     render();
 }
+
 
 function canvasToGraphCoordinate(x, y) {
     var graphX = (x - (canvas.width / 2)) / xScale;
