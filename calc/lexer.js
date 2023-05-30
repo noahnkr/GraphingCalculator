@@ -26,9 +26,6 @@ export function tokenize(expression) {
                         infix.push(tokens.E);
                         continue;
                     }
-                    if (curChar === 'y') {
-                        throw new SyntaxError('Variable y is restricted.')
-                    }
 
                     infix.push(createToken(tokens.VARIABLE.type, null, null, curChar));
                 // Either a function, or pi
@@ -66,6 +63,7 @@ export function tokenize(expression) {
                     i += (j - 1) + 1
                 }
             } catch (err) {
+                // Variable is at end of expression, clunky but it works. 
                 if (!(err instanceof SyntaxError)) {
                     infix.push(createToken(tokens.VARIABLE.type, null, null, curChar));
                 } else {

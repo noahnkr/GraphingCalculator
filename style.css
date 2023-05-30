@@ -38,7 +38,9 @@
     text-align: center;
     align-self: center;
     user-select: none;
-    padding-bottom: 5px;
+    padding: 10px;
+    margin-top: 10px;
+
 }
 
 #functions-container {

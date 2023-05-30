@@ -265,8 +265,6 @@ export function condense(postfix) {
 
                 postfix.splice(i, 0, createToken(tokens.OPERAND.type, parseFloat(newDigit), null, newDigit));
                 newDigit = '';
-
-
             }
         } else if (curToken.isFunction()) {
             condense(curToken.subtokens);
@@ -281,28 +279,3 @@ export function condense(postfix) {
     }
 }
 
-// variables should be an array of objects such as:
-// [{ a: 5 }, { b: 12 }, { c: 9.5 }]
-export function assignVariables(postfix, variables) {
-    if (variables !== undefined && variables.length != 0) {
-        for (var i in postfix) {
-            if (postfix[i].isVariable()) {
-                let name = postfix[i].show
-                let variableNames = variables.map(name => Object.keys(name)[0]);
-                for (var j in variableNames) {
-                    if (name === variableNames[j]) {
-                        postfix[i].value = variables[j][name];
-                    }
-                }
-            }
-        }
-    }
-
-    // check if every variable besides x is assigned to a value;
-    for (var i in postfix) {
-        if (postfix[i].isVariable() && postfix[i].show !== 'x' && postfix[i].value == null) {
-            throw new Error('Unassigned variable: ' + postfix[i].show);
-        }
-    }
-
-}

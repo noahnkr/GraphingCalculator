@@ -96,7 +96,7 @@ export function updateInputValues() {
             }
 
             try {
-                Expression.evaluate(value, variables);
+                Expression.evaluate(value, 0, variables);
                 symbols[i].src = '../assets/function.png';
             } catch (err) {
                 console.log('Error compiling function: ' + value);

@@ -1,6 +1,3 @@
-import { tokens } from "./token.js";
-
-
 class Node {
     constructor(token, left, right) {
         this.token = token;
@@ -29,7 +26,13 @@ export function buildTree(postfix) {
     return stack.pop();
 }
 
-export function solve(node, x) {
+export function solve(root, x, variables) {
+    assignVariables(root, variables);
+    return solveRec(root, x);
+}
+
+
+function solveRec(node, x) {
     if (node.token.isOperand() || node.token.isConstant()) {
         return node.token.value;
     }
@@ -41,43 +44,51 @@ export function solve(node, x) {
             }
             return x;
         }
+
+        if (node.token.value == null) {
+            throw new Error('Unassigned variable: ' + node.token.show);
+        }
+
         return node.token.value;
     }
 
 
     if (node.token.isOperator()) {
-        return node.token.math(solve(node.left, x),
-                                solve(node.right, x));
+        return node.token.math(solveRec(node.left, x),
+                                solveRec(node.right, x));
     }
 
     if (node.token.isFunction()) {
-        return node.token.math(solve(node.left, x));
+        return node.token.math(solveRec(node.left, x));
     }
 
     throw new Error('Unkown operation or function');
 }
 
-function getVariables(root) {
-    return getVariablesRec(root, []);
-}
-
-function getVariablesRec(node, vars) {
-    if (node.left == null && node.right == null) {
-        return vars;
+// variables should be an array of objects such as:
+// [{ a: 5 }, { b: 12 }, { c: 9.5 }]
+function assignVariables(node, variables) {
+    if (variables === undefined) {
+        return;
     }
 
-    if (node.type == tokens.VARIABLE.type) {
-        let variable = {};
-        variable[node.type.show] = 0;
-        vars.push(variable);
+    if (node.token.isVariable()) {
+        let name = node.token.show;
+        let variableNames = variables.map(name => Object.keys(name)[0]);
+        for (var i in variableNames) {
+            if (name === variableNames[i]) {
+                console.log('Assigning ' + variables[i][name] + ' to ' + name);
+                node.token.value = variables[i][name];
+            }
+        }
     }
 
-    if (node.left != null) {
-        getVarialbes(node.left, vars);
+    if (node.left !== null) {
+        assignVariables(node.left, variables);
     }
 
-    if (node.right != null) {
-        getVariables(node.right, vars);
+    if (node.right !== null) {
+        assignVariables(node.right, variables);
     }
 }
 

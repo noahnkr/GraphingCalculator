@@ -11,7 +11,6 @@ const ctx = canvas.getContext('2d');
 
 const functionCanvas = document.createElement('canvas');
 
-// Give buffer for function to be hidden and will only redraw once panned far enough
 functionCanvas.width = canvas.width * 2;
 functionCanvas.height = canvas.height * 2;
 
@@ -101,10 +100,15 @@ canvas.addEventListener('wheel', event => {
     var mouseY = event.clientY - rect.top;
 
     var zoomFactor = event.deltaY > 0 ? 0.95 : 1.05;
-    zoomScale *= zoomFactor;
 
-    posX = (posX - mouseX) * zoomFactor + mouseX;
-    posY = (posY - mouseY) * zoomFactor + mouseY;
+    zoomScale *= zoomFactor;
+    var deltaX = (posX - mouseX) * zoomFactor + mouseX - posX;
+    var deltaY = (posY - mouseY) * zoomFactor + mouseY - posY;
+    posX += deltaX;
+    posY += deltaY; 
+
+    xRange.start *= zoomFactor;
+    xRange.end *= zoomFactor;
     render(); 
   
 });
@@ -328,5 +332,3 @@ function graphToFunctionCanvasCoordinate(x, y) {
 }
 
 render();
-
-

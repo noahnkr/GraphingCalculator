@@ -1,6 +1,6 @@
 import { tokenize } from './lexer.js';
 import { buildTree, drawTree, solve } from './expression-tree.js';
-import { toPostfix, condense, assignVariables } from './postfix.js';
+import { toPostfix, condense } from './postfix.js';
 
 const h = 0.0001; // h, the smaller the value the higher the accuracy
 const maxIterations = 100;
@@ -12,9 +12,8 @@ export default class Expression {
     static evaluate(expression, x, variables) {
         let tokens = toPostfix(tokenize(expression));
         condense(tokens);
-        assignVariables(tokens, variables);
         let root = buildTree(tokens);
-        return solve(root, x);
+        return solve(root, x, variables); 
     }
 
     // Returns a function that can be evaluated at some value of x
