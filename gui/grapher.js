@@ -3,8 +3,7 @@ import Expression from '../calc/expression.js';
 export var functions = [];
 export var variables = [];
 
-var criticalPoints = [];
-var intercepts = [];
+var selectedFunctionIndex = -1;
 
 const canvas = document.getElementById('graph');
 const ctx = canvas.getContext('2d');
@@ -251,10 +250,13 @@ function drawLabels() {
 export function drawFunctions() {
     functionCtx.clearRect(0, 0, functionCanvas.width, functionCanvas.height);
     for (var i in functions) {
-
         // Don't draw function if the expression is empty or is a variable
         if (functions[i].expression !== '' && !/=/.test(functions[i].expression) ) {
             drawFunction(i);
+            if (i == selectedFunctionIndex) {
+                drawRoots(i);
+                drawIntersects(i);
+            }
         }
     }
 }
@@ -303,6 +305,25 @@ function drawFunction(index) {
     }
 }
 
+function drawRoots(index) {
+    let func = functions[index];
+    let f = Expression.makeFunction(func.expression);
+    let color = func.color.function;
+    let roots = Expression.calculateRoots(f, xRange.start, xRange.end, variables);
+    
+    roots.forEach(root => {
+        let coord = graphToFunctionCanvasCoordinate(root, 0);
+        functionCtx.beginPath();
+		functionCtx.fillStyle = color;
+		functionCtx.arc(coord.x, coord.y, 8, 0, Math.PI*2, false);
+		functionCtx.fill();
+    });
+}
+
+function drawIntersects(index) {
+
+}
+
 export function addFunction(expression, color) {
     functions.push({
         expression: expression,
@@ -310,6 +331,10 @@ export function addFunction(expression, color) {
     });
 
     render();
+}
+
+export function setSelectedFunction(index) {
+    selectedFunctionIndex = index;
 }
 
 

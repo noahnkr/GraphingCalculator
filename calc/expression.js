@@ -3,8 +3,7 @@ import { buildTree, drawTree, solve } from './expression-tree.js';
 import { toPostfix, condense } from './postfix.js';
 
 const h = 0.0001; // h, the smaller the value the higher the accuracy
-const maxIterations = 100;
-const tolerance = 0.0001; 
+const tolerance = 0.000000000001; 
 
 export default class Expression {
 
@@ -24,30 +23,40 @@ export default class Expression {
     }
 
     // Uses Newtons difference quotient to estimate derivative of a function at some value of x
-    static calculateDerivative(f, x) {
-        let y = f(x);
+    static calculateDerivative(f, x, variables) {
+        let y = f(x, variables);
         let x1 = x + h;
-        let y1 = f(x1);
+        let y1 = f(x1, variables);
         let dx = (y1 - y) / h; 
         return dx;
     }
  
     // Uses Newton–Raphson's method to calculate root of an expression based on an initial guess
-    static calculateRoots(f, x) {
-        let iteration = 0;
-        while (iteration < maxIterations) {
-            let fx = f(x); // f(x)
-            let fpx = this.calculateDerivative(f, x); // f'(x)
-            let x1 = x - fx / fpx;
-            if (Math.abs(x1 - x) < tolerance) {
-                return x1
+    static calculateRoots(f, xStart, xEnd, variables) {
+        let roots = [];
+        for (let x = xStart; x < xEnd; x++) {
+            let root = findRoot(f, x, variables);
+            if (!roots.includes(root)) {
+                roots.push(root);
             }
-
-            x = x1;
-            iteration++
+            
         }
-        return null;
+        return roots;
     }
 
+    static calculateIntersections(f, g, )
+}
+
+function findRoot(f, x, variables) {
+    let delta = Infinity;
+  
+    while (Math.abs(delta) > tolerance) {
+        let fx = f(x, variables);
+        let fpx = Expression.calculateDerivative(f, x, variables);
+        delta = fx / fpx;
+        x -= delta;
+    }
     
+    // sacrifice accuracy so we can easily compare root estimates despite floating point inaccuracy
+    return x.toFixed(4);
 }

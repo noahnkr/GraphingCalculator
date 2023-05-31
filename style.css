@@ -71,6 +71,12 @@
     margin-right: 5px;
 }
 
+
+
+.function-label:hover {
+    cursor: pointer;
+}
+
 .function-symbol {
     margin-left: 7px;
     margin-right: 5px;

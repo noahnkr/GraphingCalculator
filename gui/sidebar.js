@@ -1,5 +1,5 @@
 import Expression from "../calc/expression.js";
-import { functions, variables, addFunction, drawFunctions, render, xRange } from "./grapher.js";
+import { functions, variables, addFunction, drawFunctions, render, xRange, setSelectedFunction } from "./grapher.js";
 
 const functionColors = {
     red: {
@@ -58,6 +58,7 @@ addInputButton.addEventListener('click', () => { addInput() });
 
 export function updateInputValues() {
     variables.length = 0;
+    resetSelectedInputs();
     let inputs = document.querySelectorAll('.function-input');
     let symbols = document.querySelectorAll('.function-symbol');
     let playButtons = document.querySelectorAll('.play-button');
@@ -86,7 +87,7 @@ export function updateInputValues() {
                 let playButton = document.createElement('button');
                 playButton.innerHTML = '>';
                 playButton.className = 'play-button sidebar-button';
-                playButton.addEventListener('click', () => {startAnimation(i)})
+                playButton.addEventListener('click', () => { startAnimation(i) })
                 inputButtonsContainer.appendChild(playButton);
             }
         // function
@@ -99,13 +100,10 @@ export function updateInputValues() {
                 Expression.evaluate(value, 0, variables);
                 symbols[i].src = '../assets/function.png';
             } catch (err) {
-                console.log('Error compiling function: ' + value);
-                console.log(err);
                 symbols[i].src = '../assets/caution.png';
             }
         }
         
-
         functions[i].expression = value;
     }
 
@@ -113,8 +111,9 @@ export function updateInputValues() {
     render();
 }
 
+
 export function addInput() {
-    const index = functions.length;
+    let index = functions.length;
 
     let values = Object.values(functionColors);
     let rand = Math.floor(Math.random() * values.length);
@@ -134,6 +133,16 @@ export function addInput() {
 
     let functionLabel = document.createElement('div');
     functionLabel.className = 'function-label';
+    functionLabel.addEventListener('click', () => {
+        resetSelectedInputs()
+        if (determineIfFunction(functionInput.value)) {
+            setSelectedFunction(index);
+            functionLabel.style.backgroundColor = '#ccc';
+            functionSymbol.src = '../assets/function_selected.png';
+            drawFunctions();
+            render();
+        }
+    });
     functionLabel.appendChild(functionSymbol);
 
     let functionInput = document.createElement('input');
@@ -147,7 +156,7 @@ export function addInput() {
     removeInputButton.className = 'sidebar-button';
 
     let inputButtonsContainer = document.createElement('div');
-    inputButtonsContainer.className = 'input-buttons-container';
+    inputButtonsContainer.className = 'input-buttons-container';    
     inputButtonsContainer.appendChild(removeInputButton);
 
     removeInputButton.addEventListener('click', () => {
@@ -157,7 +166,6 @@ export function addInput() {
         functionContainer.removeChild(functionInput);
         functionContainer.removeChild(inputButtonsContainer);
         container.removeChild(functionContainer);
-
         drawFunctions();
         render();
     });
@@ -178,6 +186,35 @@ function startAnimation(index) {
     for (var val = xRange.start; val < xRange.end; val += 0.25) {
         variables[variiableIndex][name] = val;
         drawFunctions();
+    }
+
+}
+
+function resetSelectedInputs() {
+    setSelectedFunction(-1);
+    let labels = document.querySelectorAll('.function-label');
+    let symbols = document.querySelectorAll('.function-symbol');
+    let inputs = document.querySelectorAll('.function-input');
+
+    // reset background and function symbol color
+    labels.forEach(label => label.style.backgroundColor = '#555');
+    symbols.forEach((symbol, index) => {
+        if (determineIfFunction(inputs[index].value)) {
+            symbol.src = '../assets/function.png';
+        }
+    });
+}
+
+
+function determineIfFunction(value) {
+    if (value === '' || /[a-z]=[a-z0-9]/.test(value)) {
+        return false;
+    }
+    try {
+        Expression.evaluate(value, 0, variables);
+        return true;
+    } catch (err) {
+        return false;
     }
 
 }
