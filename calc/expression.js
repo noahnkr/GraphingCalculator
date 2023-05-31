@@ -43,8 +43,6 @@ export default class Expression {
         }
         return roots;
     }
-
-    static calculateIntersections(f, g, )
 }
 
 function findRoot(f, x, variables) {
