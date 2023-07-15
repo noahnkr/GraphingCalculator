@@ -3,7 +3,7 @@ import Expression from '../calc/expression.js';
 export var functions = [];
 export var variables = [];
 
-var selectedFunctionIndex = -1;
+export var selectedFunction = -1;
 
 const canvas = document.getElementById('graph');
 const ctx = canvas.getContext('2d');
@@ -19,7 +19,7 @@ const gridSize = 100;
 const gridColor = '#fff';
 const backgroundColor = '#333';
 
-const increment = 0.02;
+const increment = 0.05;
 const panSensitivity = 1;
 
 // range visible on canvas
@@ -109,7 +109,7 @@ canvas.addEventListener('wheel', event => {
     xRange.start *= zoomFactor;
     xRange.end *= zoomFactor;
     render(); 
-  
+
 });
 
 export function render() {
@@ -253,9 +253,9 @@ export function drawFunctions() {
         // Don't draw function if the expression is empty or is a variable
         if (functions[i].expression !== '' && !/=/.test(functions[i].expression) ) {
             drawFunction(i);
-            if (i == selectedFunctionIndex) {
-                drawRoots(i);
-                drawIntersects(i);
+            if (i == selectedFunction) {
+                //drawRoots(i);
+                //drawIntersects(i);
             }
         }
     }
@@ -334,7 +334,7 @@ export function addFunction(expression, color) {
 }
 
 export function setSelectedFunction(index) {
-    selectedFunctionIndex = index;
+    selectedFunction = index;
 }
 
 

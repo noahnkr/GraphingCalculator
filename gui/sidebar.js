@@ -1,5 +1,5 @@
 import Expression from "../calc/expression.js";
-import { functions, variables, addFunction, drawFunctions, render, xRange, setSelectedFunction } from "./grapher.js";
+import { functions, variables, addFunction, drawFunctions, render, xRange, selectedFunction, setSelectedFunction } from "./grapher.js";
 
 const functionColors = {
     red: {
@@ -56,22 +56,19 @@ const functionColors = {
 const addInputButton = document.getElementById('add-input-button');
 addInputButton.addEventListener('click', () => { addInput() });
 
-export function updateInputValues() {
+function updateInputs() {
     variables.length = 0;
-    resetSelectedInputs();
     let inputs = document.querySelectorAll('.function-input');
     let symbols = document.querySelectorAll('.function-symbol');
-    let playButtons = document.querySelectorAll('.play-button');
     
     for (let i = 0; i < inputs.length; i++) {
         let value = inputs[i].value;
+        let selected = selectedFunction == i;
 
         // empty input
         if (value === '') {
             symbols[i].src = '';
-            if (playButtons[i] !== undefined) {
-                playButtons[i].remove();
-            }
+
             
         // variable
         } else if (/[a-z]=[a-z0-9]/.test(value)) { 
@@ -80,27 +77,14 @@ export function updateInputValues() {
             let val = parseFloat(value.split('=')[1]);
             variable[name] = val;;
             variables.push(variable);
-            symbols[i].src = '../assets/variable.png';
-            
-            if (playButtons[i] == undefined) {
-                let inputButtonsContainer = document.querySelectorAll('.input-buttons-container')[i];
-                let playButton = document.createElement('button');
-                playButton.innerHTML = '>';
-                playButton.className = 'play-button sidebar-button';
-                playButton.addEventListener('click', () => { startAnimation(i) })
-                inputButtonsContainer.appendChild(playButton);
-            }
+            symbols[i].src = selected ? '../assets/variable_selected.png' : '../assets/variable.png';
         // function
         } else {
-            if (playButtons[i] !== undefined) {
-                playButtons[i].remove();
-            }
-
             try {
                 Expression.evaluate(value, 0, variables);
-                symbols[i].src = '../assets/function.png';
+                symbols[i].src = selected ? '../assets/function_selected.png' : '../assets/function.png';
             } catch (err) {
-                symbols[i].src = '../assets/caution.png';
+                symbols[i].src = selected ? '../assets/caution_selected.png' : '../assets/caution.png';
             }
         }
         
@@ -114,7 +98,6 @@ export function updateInputValues() {
 
 export function addInput() {
     let index = functions.length;
-
     let values = Object.values(functionColors);
     let rand = Math.floor(Math.random() * values.length);
     const color = values[rand];
@@ -130,25 +113,27 @@ export function addInput() {
     let functionSymbol = document.createElement('img');
     functionSymbol.className = 'function-symbol';
     functionSymbol.src = '';
-
+    
     let functionLabel = document.createElement('div');
     functionLabel.className = 'function-label';
-    functionLabel.addEventListener('click', () => {
-        resetSelectedInputs()
-        if (determineIfFunction(functionInput.value)) {
-            setSelectedFunction(index);
-            functionLabel.style.backgroundColor = '#ccc';
-            functionSymbol.src = '../assets/function_selected.png';
-            drawFunctions();
-            render();
-        }
-    });
+    functionLabel.style.backgroundColor = '#555';
     functionLabel.appendChild(functionSymbol);
 
     let functionInput = document.createElement('input');
     functionInput.className = 'function-input';
     functionInput.value = functions[index].expression;
-    functionInput.oninput = updateInputValues;
+    functionInput.oninput = updateInputs;
+    functionInput.addEventListener('focus', () => {
+        setSelectedFunction(index);
+        functionLabel.style.backgroundColor = '#ccc';
+        updateInputs();
+    })
+    functionInput.addEventListener('blur', () => {
+        setSelectedFunction(-1);
+        functionLabel.style.backgroundColor = '#555';
+        updateInputs();
+    })
+    
     functionContainer.style.backgroundColor = color.focus;
     
     let removeInputButton = document.createElement('button');
@@ -181,42 +166,14 @@ function startAnimation(index) {
     let value = functionContainer.querySelectorAll('input')[0].value;
     let name = value.split('=')[0];
     let variableNames = variables.map(name => Object.keys(name)[0]);
-    let variiableIndex = variableNames.indexOf(name);
+    let variableIndex = variableNames.indexOf(name);
 
     for (var val = xRange.start; val < xRange.end; val += 0.25) {
-        variables[variiableIndex][name] = val;
+        variables[variableIndex][name] = val;
         drawFunctions();
     }
 
 }
 
-function resetSelectedInputs() {
-    setSelectedFunction(-1);
-    let labels = document.querySelectorAll('.function-label');
-    let symbols = document.querySelectorAll('.function-symbol');
-    let inputs = document.querySelectorAll('.function-input');
-
-    // reset background and function symbol color
-    labels.forEach(label => label.style.backgroundColor = '#555');
-    symbols.forEach((symbol, index) => {
-        if (determineIfFunction(inputs[index].value)) {
-            symbol.src = '../assets/function.png';
-        }
-    });
-}
-
-
-function determineIfFunction(value) {
-    if (value === '' || /[a-z]=[a-z0-9]/.test(value)) {
-        return false;
-    }
-    try {
-        Expression.evaluate(value, 0, variables);
-        return true;
-    } catch (err) {
-        return false;
-    }
-
-}
 
 
