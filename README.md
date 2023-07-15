@@ -41,20 +41,20 @@ we are trying to convert the expression from infix to postfix.
 ### Postfix Conversion
 
 The benefit of using postfix is that there is no need for the use of parenthesis and that the order of the operators can be determined using a stack. While this process works for simple expressions, 
-things get more complicated whenyou introduce functions like ```sqrt```, ```sin```, and ```log```. The standard operations are called binary operators because they apply to they apply the operation 
-to two operands, the left and right sides of the operator. However, when you have a function, it only applies to the operands _inside_ of the function. 
+things get more complicated when you introduce functions like ```sqrt```, ```sin```, and ```log```. The standard operations are called binary operators because they apply the operation 
+to two operands, the left and right sides of the operator. However, when you have a function, it only applies to the _inside_ of the function. 
 
 For example: ```10*sin(x+5)```
 
 If you were to use the traditional approach of converting this to postfix, the addition operator inside the sine function would be applied incorrectly because there is no way of determining which 
-operands it applies to without parenthesis.To solve this issue, I like to think of anything inside of a function as an entirely separate expression. By using _"subtokens"_, each function has its 
+operands it applies to without parenthesis. To solve this issue, I like to think of anything inside of a function as an entirely separate expression. By using _"subtokens"_, each function has its 
 own separate list of tokens and operator stack. Using this new approach we can convert the aforementioned expression to postfix format by adding a new stack to the operator _stacks_ when we encounter 
 ```sin```, and anything inside the function will be added to the list of subtokens and stack until we reach the function's respective closing parenthesis.
 
 ### Operand Condensing
 
-Previously, whenever we encountered a digit it would be added as a single-digit token to the list and not as the entire number. This means that the expression ```12+47``` would look like ```1247+```. 
-To distinguish between multi-digit numbers,a separator is added after the end of a number so that after converting the expression to postfix it is possible to condense multiple single-digit tokens into 
+Previously, whenever we encountered a digit it would be added as a single-digit token to the list and not as the entire number. This means that the expression ```12+47``` in infix would look like ```1247+``` 
+in postfix. To distinguish between multi-digit numbers, a separator is added after the end of a number so that after converting the expression to postfix it is possible to condense multiple single-digit tokens into 
 one token. There were many other intricacies such as decimals, negatives, and coefficients that had to be worked out as well.
 
 ### Expression Tree
