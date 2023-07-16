@@ -1,8 +1,7 @@
 # GraphMath
 
 GraphMath is a Javascript-based graphing calculator that is capable of graphing mathematical functions onto a cartesian plane. The inspiration for this project comes from the website 
-[Desmos](https://www.desmos.com/). Although the most useful application for GraphMath is visualizing functions, it is also capable of evaluating complex mathematical expressions featuring 
-multiple variables to a high degree of precision disregarding floating-point inaccuracy. 
+[Desmos](https://www.desmos.com/). Although the most useful application for GraphMath is visualizing functions, it is also capable of evaluating complex multi-variable mathematical expressions, calculate intercepts, roots, derivates, and more to a high degree of precision disregarding floating-point inaccuracy. 
 
 ![Graph](https://i.imgur.com/xk5rOMX.png)
 
