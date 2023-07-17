@@ -1,3 +1,11 @@
+class Node {
+    constructor(token, left, right) {
+        this.token = token;
+        this.left = left;
+        this.right = right;
+    }
+}
+
 export function buildTree(postfix) {
     var stack = [];
 
@@ -18,35 +26,72 @@ export function buildTree(postfix) {
     return stack.pop();
 }
 
-export function solve(node, x) {
+export function solve(root, x, variables) {
+    assignVariables(root, variables);
+    return solveRec(root, x);
+}
+
+
+function solveRec(node, x) {
     if (node.token.isOperand() || node.token.isConstant()) {
         return node.token.value;
     }
+    
+    if (node.token.isVariable()) {
+        if (node.token.show === 'x') {
+            if (x === undefined) {
+                throw new Error('Unassinged variable: x');
+            }
+            return x;
+        }
+
+        if (node.token.value == null) {
+            throw new Error('Unassigned variable: ' + node.token.show);
+        }
+
+        return node.token.value;
+    }
+
 
     if (node.token.isOperator()) {
-        return node.token.math(solve(node.left, x),
-                               solve(node.right, x));
+        return node.token.math(solveRec(node.left, x),
+                                solveRec(node.right, x));
     }
 
     if (node.token.isFunction()) {
-        return node.token.math(solve(node.left, x), 0);
+        return node.token.math(solveRec(node.left, x));
+    }
+
+    throw new Error('Unkown operation or function');
+}
+
+// variables should be an array of objects such as:
+// [{ a: 5 }, { b: 12 }, { c: 9.5 }]
+function assignVariables(node, variables) {
+    if (variables === undefined) {
+        return;
     }
 
     if (node.token.isVariable()) {
-        return x;
+        let name = node.token.show;
+        let variableNames = variables.map(name => Object.keys(name)[0]);
+        for (var i in variableNames) {
+            if (name === variableNames[i]) {
+                console.log('Assigning ' + variables[i][name] + ' to ' + name);
+                node.token.value = variables[i][name];
+            }
+        }
     }
 
-    throw new Error('Unkown operation or function.');
-}
+    if (node.left !== null) {
+        assignVariables(node.left, variables);
+    }
 
-
-class Node {
-    constructor(token, left, right) {
-        this.token = token;
-        this.left = left;
-        this.right = right;
+    if (node.right !== null) {
+        assignVariables(node.right, variables);
     }
 }
+
 
 export function drawTree(root) {
     if (root === null) {

@@ -1,4 +1,4 @@
-import { mathFunctions } from "./function.js";
+import { mathFunctions } from './function.js';
 
 export default class Token {
     constructor(type, value, subtokens, show, math) {
@@ -18,24 +18,24 @@ export default class Token {
     }
 
     isOperand() {
-        return (this.type >= 0 && this.type <= 9) || this.type == tokenTypes.OPERAND.type;
+        return (this.type >= 0 && this.type <= 9) || this.type == tokens.OPERAND.type;
     }
 
     isConstant() {
-        return this.type == tokenTypes.PI.type || this.type == tokenTypes.E.type;
+        return this.type == tokens.PI.type || this.type == tokens.E.type;
     }
 
     isVariable() {
-        return this.type == tokenTypes.VARIABLE.type;
+        return this.type == tokens.VARIABLE.type;
     }
 
     precedence() {
-        if (this.type == tokenTypes.ADDITION.type || this.type == tokenTypes.SUBTRACTION.type || 
-                                                     this.type == tokenTypes.NEGATIVE.type) {
+        if (this.type == tokens.ADDITION.type || this.type == tokens.SUBTRACTION.type || 
+                                                     this.type == tokens.NEGATIVE.type) {
             return 1;
-        } else if (this.type == tokenTypes.MULTIPLICATION.type || this.type == tokenTypes.DIVISION.type) {
+        } else if (this.type == tokens.MULTIPLICATION.type || this.type == tokens.DIVISION.type) {
             return 2;
-        } else if (this.type == tokenTypes.POW.type) {
+        } else if (this.type == tokens.POW.type) {
             return 3;
         }
         return -1;
@@ -46,7 +46,7 @@ export function createToken(type, value, subtokens, show, math) {
     return new Token(type, value, subtokens, show, math);
 }
 
-export const tokenTypes = {
+export const tokens = {
     // Digits
     ZERO              : new Token(0, 0, null, '0'),
     ONE               : new Token(1, 1, null, '1'),
@@ -87,7 +87,7 @@ export const tokenTypes = {
     CLOSE_PARENTHESIS : new Token(31, null, null, ')'), 
     FUNCTION_OPEN     : new Token(32, null, null, '('), 
     FUNCTION_CLOSE    : new Token(33, null, null, ')'),
-    OPERAND           : new Token(34, 0, null, '0'), 
+    OPERAND           : new Token(34, null, null, '0'), 
     VARIABLE          : new Token(35, null, null, 'x'), 
     DECIMAL           : new Token(36, null, null, '.'), 
     NEGATIVE          : new Token(37, null, null, '-'), 
@@ -95,40 +95,40 @@ export const tokenTypes = {
 };
 
 export const digitMap = new Map([
-    [0, tokenTypes.ZERO],
-    [1, tokenTypes.ONE],
-    [2, tokenTypes.TWO],
-    [3, tokenTypes.THREE],
-    [4, tokenTypes.FOUR],
-    [5, tokenTypes.FIVE],
-    [6, tokenTypes.SIX],
-    [7, tokenTypes.SEVEN],
-    [8, tokenTypes.EIGHT],
-    [9, tokenTypes.NINE]
+    [0, tokens.ZERO],
+    [1, tokens.ONE],
+    [2, tokens.TWO],
+    [3, tokens.THREE],
+    [4, tokens.FOUR],
+    [5, tokens.FIVE],
+    [6, tokens.SIX],
+    [7, tokens.SEVEN],
+    [8, tokens.EIGHT],
+    [9, tokens.NINE]
 ]);
 
 export const operatorMap = new Map([
-    ['+', tokenTypes.ADDITION],
-    ['-', tokenTypes.SUBTRACTION],
-    ['*', tokenTypes.MULTIPLICATION],
-    ['/', tokenTypes.DIVISION],
-    ['^', tokenTypes.POW]
+    ['+', tokens.ADDITION],
+    ['-', tokens.SUBTRACTION],
+    ['*', tokens.MULTIPLICATION],
+    ['/', tokens.DIVISION],
+    ['^', tokens.POW]
 ]);
 
 export const functionMap = new Map([
-    ['sin', tokenTypes.SIN],
-    ['cos', tokenTypes.COS],
-    ['tan', tokenTypes.TAN],
-    ['asin', tokenTypes.ASIN],
-    ['acos', tokenTypes.ACOS],
-    ['atan', tokenTypes.ATAN],
-    ['sinh', tokenTypes.SINH],
-    ['cosh', tokenTypes.COSH],
-    ['tanh', tokenTypes.TANH],
-    ['sqrt', tokenTypes.SQRT],
-    ['cbrt', tokenTypes.CBRT],
-    ['log', tokenTypes.LOG],
-    ['ln', tokenTypes.LN],
-    ['abs', tokenTypes.ABS]
+    ['sin', tokens.SIN],
+    ['cos', tokens.COS],
+    ['tan', tokens.TAN],
+    ['asin', tokens.ASIN],
+    ['acos', tokens.ACOS],
+    ['atan', tokens.ATAN],
+    ['sinh', tokens.SINH],
+    ['cosh', tokens.COSH],
+    ['tanh', tokens.TANH],
+    ['sqrt', tokens.SQRT],
+    ['cbrt', tokens.CBRT],
+    ['log', tokens.LOG],
+    ['ln', tokens.LN],
+    ['abs', tokens.ABS]
 ]);
     
