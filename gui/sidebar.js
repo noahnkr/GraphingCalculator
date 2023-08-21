@@ -1,5 +1,5 @@
 import Expression from "../calc/expression.js";
-import { functions, variables, addFunction, drawFunctions, render, xRange, selectedFunction, setSelectedFunction } from "./grapher.js";
+import { functions, variables, addFunction, drawFunctions, render, selectedFunction, setSelectedFunction, clearCache } from "./grapher.js";
 
 const functionColors = {
     red: {
@@ -87,8 +87,14 @@ function updateInputs() {
                 symbols[i].src = selected ? '../assets/caution_selected.png' : '../assets/caution.png';
             }
         }
+
+        if (functions[i].expression !== value) {
+            clearCache(i);
+        }
         
         functions[i].expression = value;
+
+
     }
 
     drawFunctions();
@@ -161,19 +167,7 @@ export function addInput() {
     container.appendChild(functionContainer);
 }
 
-function startAnimation(index) {
-    let functionContainer = document.getElementById(index);
-    let value = functionContainer.querySelectorAll('input')[0].value;
-    let name = value.split('=')[0];
-    let variableNames = variables.map(name => Object.keys(name)[0]);
-    let variableIndex = variableNames.indexOf(name);
 
-    for (var val = xRange.start; val < xRange.end; val += 0.25) {
-        variables[variableIndex][name] = val;
-        drawFunctions();
-    }
-
-}
 
 
 
