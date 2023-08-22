@@ -87,7 +87,7 @@ export const tokens = {
     CLOSE_PARENTHESIS : new Token(31, null, null, ')'), 
     FUNCTION_OPEN     : new Token(32, null, null, '('), 
     FUNCTION_CLOSE    : new Token(33, null, null, ')'),
-    OPERAND           : new Token(34, 0, null, '0'), 
+    OPERAND           : new Token(34, null, null, '0'), 
     VARIABLE          : new Token(35, null, null, 'x'), 
     DECIMAL           : new Token(36, null, null, '.'), 
     NEGATIVE          : new Token(37, null, null, '-'), 

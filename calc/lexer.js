@@ -1,4 +1,4 @@
-import { tokens, digitMap, operatorMap, functionMap } from './token.js';
+import { tokens, digitMap, operatorMap, functionMap, createToken } from './token.js';
 
 
 /* Tokenizes an infix expression through lexical analysis */
@@ -17,34 +17,59 @@ export function tokenize(expression) {
         } else if (!isNaN(curChar)) {
             infix.push(digitMap.get(parseInt(curChar)));
 
-        // Function
-        } else if (curChar.match(/[a-zA-Z]/) && curChar !== 'x'
-                                             && curChar !== 'e'
-                                             && (curChar !== 'p' && curChar !== 'i'))  {
-            // Shortest key length is 2
-            let j = 2; 
-            let show = expression.substring(i, i + j);
+        // Character
+        } else if (curChar.match(/[a-zA-Z]/))  {
+            // Next character not a letter, either a variable or e
+            try {
+                if (!expression[i + 1].match(/[a-zA-Z]/)) {
+                    if (curChar === 'e') {
+                        infix.push(tokens.E);
+                        continue;
+                    }
 
-            // Look through function map until we find a match
-            while (!functionMap.has(show)) {
-                j++;
-                show = expression.substring(i, i + j);
+                    infix.push(createToken(tokens.VARIABLE.type, null, null, curChar));
+                // Either a function, or pi
+                } else {
+                    // Shortest key length is 2
+                    let j = 2; 
+                    let show = expression.substring(i, i + j);
+                    let token = null;
 
-                // Longest key length is 4
-                if (j > 4) {
-                    throw new Error('Unknown function: ' + show);
+                    // Look through function map until we find a match
+                    while (!functionMap.has(show)) {
+                        if (show === 'pi') {
+                            token = tokens.PI;
+                            break;
+                        }
+
+                        j++;
+                        show = expression.substring(i, i + j);
+
+                        // Longest key length is 4
+                        if (j > 4) {
+                            throw new SyntaxError('Unknown function: ' + show);
+                        }
+                    }
+
+                    // Contains key!
+                    if (token == null) {
+                        token = functionMap.get(show);
+                        infix.push(token);
+                        infix.push(tokens.FUNCTION_OPEN);
+                    } else {
+                        infix.push(token);
+                    }
+
+                    i += (j - 1) + 1
+                }
+            } catch (err) {
+                // Variable is at end of expression, clunky but it works. 
+                if (!(err instanceof SyntaxError)) {
+                    infix.push(createToken(tokens.VARIABLE.type, null, null, curChar));
+                } else {
+                    throw err;
                 }
             }
-
-            // Contains key!
-            infix.push(functionMap.get(show));
-            infix.push(tokens.FUNCTION_OPEN);
-            i += (j - 1) + 1
-        
-
-        // Variable
-        } else if (curChar === 'x') {
-            infix.push(tokens.VARIABLE);
         
         // Open Parenthesis
         } else if (curChar === '(') {
@@ -57,16 +82,7 @@ export function tokenize(expression) {
         // Decimal
         } else if (curChar === '.') {
             infix.push(tokens.DECIMAL);
-        
-        // E
-        } else if (curChar === 'e') {
-            infix.push(tokens.E);
 
-        // Pi
-        } else if (curChar === 'p' && expression[i + 1] === 'i') {
-            infix.push(tokens.PI);
-            i++;
-        
         // Operator
         } else {
             if (operatorMap.has(curChar)) {

@@ -1,67 +1,49 @@
-import Expression from "../calc/expression.js";
+import Expression from '../calc/expression.js';
 
-export var functions = [];
-var criticalPoints = [];
-var intercepts = [];
+export let functions = [];
+export let variables = [];
+
+export let selectedFunction = -1;
 
 const canvas = document.getElementById('graph');
 const ctx = canvas.getContext('2d');
-
-const functionCanvas = document.createElement('canvas');
-
-// Give buffer for function to be hidden and will only redraw once panned far enough
-functionCanvas.width = canvas.width * 2;
-functionCanvas.height = canvas.height * 2;
-
-const functionCtx = functionCanvas.getContext('2d');
 
 const gridSize = 100;
 const gridColor = '#fff';
 const backgroundColor = '#333';
 
-const increment = 0.1;
+const increment = 0.01;
 const panSensitivity = 1;
 
-// range visible on canvas
-var xRange = {
+let xRange = {
     start: -((canvas.width / 2) / gridSize),
     end: ((canvas.width / 2) / gridSize)
 };
 
-var yRange = {
+let yRange = {
     start: -((canvas.height / 2) / gridSize),
     end: ((canvas.height / 2) / gridSize)
 };
 
-// range of function drawn
-var function_xRange = {
-    start: -((functionCanvas.width / 2) / gridSize),
-    end: ((functionCanvas.width / 2) / gridSize)
-}
+let zoomScale = 1;
+let xScale = canvas.width / (xRange.end - xRange.start) * zoomScale;
+let yScale = canvas.height / (yRange.end - yRange.start) * zoomScale;
 
-var function_yRange = {
-    start: -((functionCanvas.height / 2) / gridSize),
-    end: ((functionCanvas.height / 2) / gridSize)
-}
+let xOffset = 0;
+let yOffset = 0;
 
-var function_xOffset = 0;
-var function_yOffset = 0;
+let posX = 0;
+let posY = 0;
+let lastX = 0;
+let lastY = 0;
 
+let isDragging = false;
 
-var zoomScale = 1;
-var xScale = canvas.width / (xRange.end - xRange.start) * zoomScale;
-var yScale = canvas.height / (yRange.end - yRange.start) * zoomScale;
-
-var posX = 0;
-var posY = 0;
-var lastX = 0;
-var lastY = 0;
-
-var isDragging = false;
+let functionCache = [];
 
 canvas.addEventListener('mousedown', (event) => {
     isDragging = true;
-    var coords = canvasToGraphCoordinate(event.clientX, event.clientY)
+    let coords = canvasToGraphCoordinate(event.clientX, event.clientY)
     lastX = coords.x;
     lastY = coords.y;
 });
@@ -76,16 +58,15 @@ canvas.addEventListener('mouseleave', () => {
 
 canvas.addEventListener('mousemove', event => {
     if (isDragging) {
-        var coords = canvasToGraphCoordinate(event.clientX, event.clientY);
-        var deltaX = (coords.x - lastX) * panSensitivity * gridSize;
-        var deltaY = (coords.y - lastY) * panSensitivity * gridSize;
+        let coords = canvasToGraphCoordinate(event.clientX, event.clientY);
+        let deltaX = Math.round((coords.x - lastX) * panSensitivity * gridSize);
+        let deltaY = Math.round((coords.y - lastY) * panSensitivity * gridSize);
 
         posX += deltaX;
         posY -= deltaY;
 
-        
-        
         updateRanges(deltaX, deltaY);
+        updateCache(deltaX);
         render();
 
         lastX = coords.x;
@@ -96,17 +77,22 @@ canvas.addEventListener('mousemove', event => {
 canvas.addEventListener('wheel', event => {
     event.preventDefault();
 
-    var rect = canvas.getBoundingClientRect();
-    var mouseX = event.clientX - rect.left;
-    var mouseY = event.clientY - rect.top;
+    let rect = canvas.getBoundingClientRect();
+    let mouseX = event.clientX - rect.left;
+    let mouseY = event.clientY - rect.top;
 
-    var zoomFactor = event.deltaY > 0 ? 0.95 : 1.05;
+    let zoomFactor = event.deltaY > 0 ? 0.95 : 1.05;
+
     zoomScale *= zoomFactor;
+    let deltaX = (posX - mouseX) * zoomFactor + mouseX - posX;
+    let deltaY = (posY - mouseY) * zoomFactor + mouseY - posY;
+    posX += deltaX;
+    posY += deltaY; 
 
-    posX = (posX - mouseX) * zoomFactor + mouseX;
-    posY = (posY - mouseY) * zoomFactor + mouseY;
+    xRange.start *= zoomFactor;
+    xRange.end *= zoomFactor;
     render(); 
-  
+
 });
 
 export function render() {
@@ -118,16 +104,14 @@ export function render() {
     ctx.scale(zoomScale, zoomScale);
     drawGrid();
     drawLabels();
-    // Draws image of function canvas onto graph canvas at relative position of the graph.
-    // Improves performnce by not redrawing each function on each render.
-    ctx.drawImage(functionCanvas, -(canvas.width / 2) - function_xOffset, -(canvas.height / 2) - function_yOffset);
     ctx.restore();
+    drawFunctions();
 }
 
 
 function updateRanges(deltaX, deltaY) {
-    var canvasStartRange = graphToCanvasCoordinate(xRange.start, yRange.start);
-    var canvasEndRange = graphToCanvasCoordinate(xRange.end, yRange.end);
+    let canvasStartRange = graphToCanvasCoordinate(xRange.start, yRange.start);
+    let canvasEndRange = graphToCanvasCoordinate(xRange.end, yRange.end);
 
     canvasStartRange.x -= deltaX;
     canvasEndRange.x -= deltaX;
@@ -135,37 +119,39 @@ function updateRanges(deltaX, deltaY) {
     canvasStartRange.y += deltaY;
     canvasEndRange.y += deltaY;
 
-    var newStartRange = canvasToGraphCoordinate(canvasStartRange.x, canvasStartRange.y);
-    var newEndRange = canvasToGraphCoordinate(canvasEndRange.x, canvasEndRange.y);
+    xOffset += deltaX;
+    yOffset += deltaY;
+
+    let newStartRange = canvasToGraphCoordinate(canvasStartRange.x, canvasStartRange.y);
+    let newEndRange = canvasToGraphCoordinate(canvasEndRange.x, canvasEndRange.y);
 
     xRange.start = newStartRange.x;
     xRange.end = newEndRange.x;
     yRange.start = newStartRange.y;
     yRange.end = newEndRange.y;
+}
 
-    if (xRange.start <= function_xRange.start) {
-        function_xRange.start -= (xScale / 10);
-        function_xRange.end -= (xScale / 10);
-        function_xOffset += functionCanvas.width / 4;
-        drawFunctions();
-    } else if (xRange.end >=  function_xRange.end) {
-        function_xRange.start += (xScale / 10);
-        function_xRange.end += (xScale / 10);
-        function_xOffset -= functionCanvas.width / 4;
-        drawFunctions();
+function updateCache(deltaX) {
+    for (let i = 0; i < functionCache.length; i++) {
+        functionCache[i] = shiftAndDelete(functionCache[i], deltaX);
     }
+}
 
-    if (yRange.start <= function_yRange.start) {
-        function_yRange.start -= (yScale / 10);
-        function_yRange.end -= (yScale / 10);
-        function_yOffset -= functionCanvas.height / 4;
-        drawFunctions();
-    } else if (yRange.end >= function_yRange.end) {
-        function_yRange.start += (yScale / 10);
-        function_yRange.end += (yScale / 10);
-        function_yOffset += functionCanvas.height / 4;
-        drawFunctions();
+export function clearCache(index) {
+    functionCache[index] = [];
+}
+
+// Performs a non-circular array shift the amount given. Shifts left if the amount is negative, 
+// shifts right if positive. Empty indices after shift are undefined and the length is unchanged.
+function shiftAndDelete(arr, amount) {
+    let newArr = new Array(arr.length);
+    for (let i = 0; i < arr.length; i++) {
+        let newIndex = i + amount;
+        if (newIndex >= 0 && newIndex < arr.length) {
+            newArr[newIndex] = arr[i];
+        }
     }
+  return newArr;
 }
 
 function drawGrid() {
@@ -173,12 +159,11 @@ function drawGrid() {
     ctx.lineWidth = 1;
     ctx.globalAlpha = 0.5;
 
-    var startDraw = graphToCanvasCoordinate(xRange.start, yRange.start);
-    var endDraw = graphToCanvasCoordinate(xRange.end, yRange.end);
-
+    let startDraw = graphToCanvasCoordinate(xRange.start, yRange.start);
+    let endDraw = graphToCanvasCoordinate(xRange.end, yRange.end);
 
     // draw x axes
-    for (var i = startDraw.x - xScale; i < endDraw.x; i += xScale) {
+    for (let i = startDraw.x - xScale; i < endDraw.x; i += xScale) {
         ctx.beginPath();
         ctx.moveTo((xScale - (i % xScale)) + i, startDraw.y);
         ctx.lineTo((xScale - (i % xScale)) + i, endDraw.y);
@@ -187,7 +172,7 @@ function drawGrid() {
     }
 
     // draw y axes
-    for (var i = endDraw.y - xScale; i < startDraw.y; i += yScale) {
+    for (let i = endDraw.y - xScale; i < startDraw.y; i += yScale) {
         ctx.beginPath();
         ctx.moveTo(startDraw.x, (yScale - (i % yScale)) + i);
         ctx.lineTo(endDraw.x, (yScale - (i % yScale)) + i);
@@ -218,13 +203,13 @@ function drawLabels() {
     ctx.globalAlpha = 1;
     ctx.font = '24px Roboto';
 
-    var startDraw = graphToCanvasCoordinate(xRange.start, yRange.start);
-    var endDraw = graphToCanvasCoordinate(xRange.end, yRange.end);
+    let startDraw = graphToCanvasCoordinate(xRange.start, yRange.start);
+    let endDraw = graphToCanvasCoordinate(xRange.end, yRange.end);
 
     // x labels
-    for (var i = startDraw.x - xScale; i < endDraw.x; i += xScale) {
+    for (let i = startDraw.x - xScale; i < endDraw.x; i += xScale) {
         
-        var value = canvasToGraphCoordinate((xScale - (i % xScale)) + i, 0).x;
+        let value = canvasToGraphCoordinate((xScale - (i % xScale)) + i, 0).x;
 
         if (value != 0) {
             ctx.fillText(value, (xScale - (i % xScale)) + i - (gridSize / 16), (canvas.height / 2) - (gridSize / 8));
@@ -235,8 +220,8 @@ function drawLabels() {
     }
 
     // y labels
-    for (var i = endDraw.y - yScale; i < startDraw.y; i += yScale) {
-        var value = canvasToGraphCoordinate(0, (yScale - (i % yScale)) + i).y;
+    for (let i = endDraw.y - yScale; i < startDraw.y; i += yScale) {
+        let value = canvasToGraphCoordinate(0, (yScale - (i % yScale)) + i).y;
         // 0 already drawn
         if (value != 0) {
             ctx.fillText(value, canvas.width / 2 + (gridSize / 16), (yScale - (i % yScale)) + i + (gridSize / 16))
@@ -245,83 +230,121 @@ function drawLabels() {
 }
 
 export function drawFunctions() {
-    functionCtx.clearRect(0, 0, functionCanvas.width, functionCanvas.height);
-    for (var i in functions) {
-        if (functions[i].expression !== '') {
+    for (let i in functions) {
+        // Don't draw function if the expression is empty or is a variable
+        if (functions[i].expression !== '' && !/=/.test(functions[i].expression)) {
             drawFunction(i);
+            if (i == selectedFunction) {
+                //drawRoots(i);
+                //drawIntersects(i);
+            }
         }
     }
 }
 
-function drawFunction(index) {
-    var f = Expression.makeFunction(functions[index].expression);
-    functionCtx.strokeStyle = functions[index].color.function;
-    functionCtx.lineWidth = 3;
-    functionCtx.globalAlpha = 1;
 
-     try {
-        functionCtx.beginPath();
-        var startCoord = null
-        var prevCoord = null;
-        for (var x = function_xRange.start; x < function_xRange.end; x += increment) {
-                var y = f(x);
-                var coord = graphToFunctionCanvasCoordinate(x, y);
+function drawFunction(index) { 
+    try {
+        ctx.strokeStyle = functions[index].color.function;
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = 1;
 
-                if (prevCoord !== null && Math.abs(coord.y - prevCoord.y) < functionCanvas.height / 2) {
-                    functionCtx.lineTo(coord.x, coord.y);
+        ctx.beginPath();
+        let startCoord = null
+        let prevCoord = null;
+
+        let f = Expression.makeFunction(functions[index].expression);
+        // index of cached y value
+        let i = 0;
+        let calculations = 0;
+        
+        for (let x = xRange.start; x <= xRange.end; x += increment) {
+                let y;
+                // if value is already cached
+                if (functionCache[index][i] !== undefined) {
+                    y = functionCache[index][i];
                 } else {
-                    functionCtx.moveTo(coord.x, coord.y);
+                    y = f(x, variables); // expensive calculation
+                    calculations++;
+                    functionCache[index][i] = y;
                 }
-
-                prevCoord = coord;
                 
-                // Save starting point for closing path
-                if (startCoord === null) {
-                    startCoord = coord;
+                if (isFinite(y)) {
+                    let coord = graphToCanvasCoordinate(x + (xOffset / xScale), y + (yOffset / yScale));
+
+                    // Check if next coordinate is not too far away or is not a real number
+                    if (prevCoord !== null && Math.abs(coord.y - prevCoord.y) < canvas.height / 2) {
+                        ctx.lineTo(coord.x, coord.y);
+
+                    // Otherwise, start a new stoke
+                    } else {
+                        ctx.stroke();
+                        ctx.closePath();
+                        ctx.beginPath();
+                        ctx.moveTo(coord.x, coord.y);
+                    }
+                    prevCoord = coord;
+                    // Save starting point for closing path
+                    if (startCoord === null) {
+                        startCoord = coord;
+                    }
                 }
+            i++;
         }
-    
-        functionCtx.stroke();
-        functionCtx.lineTo(startCoord.x, startCoord.y);
-        functionCtx.closePath();
+
+        ctx.stroke();
+        ctx.lineTo(startCoord.x, startCoord.y);
+        ctx.closePath();
+        console.log(calculations);
 
     } catch (err) {
         console.log('Error drawing function: ' + functions[index].expression);
-    
     }
+}
+
     
-  }
+function drawRoots(index) {
+    let func = functions[index];
+    let f = Expression.makeFunction(func.expression);
+    let color = func.color.function;
+    let roots = Expression.calculateRoots(f, xRange.start, xRange.end, variables);
+    
+    roots.forEach(root => {
+        let coord = graphToCanvasCoordinate(root, 0);
+        ctx.beginPath();
+		ctx.fillStyle = color;
+		ctx.arc(coord.x, coord.y, 8, 0, Math.PI*2, false);
+		ctx.fill();
+    });
+}
+
+function drawIntersects(index) {
+
+}
 
 export function addFunction(expression, color) {
     functions.push({
         expression: expression,
         color: color
     });
-
+    functionCache.push(new Array(400));
     render();
 }
 
+export function setSelectedFunction(index) {
+    selectedFunction = index;
+}
+
 function canvasToGraphCoordinate(x, y) {
-    var graphX = (x - (canvas.width / 2)) / xScale;
-    var graphY = (y - (canvas.height / 2)) / -yScale;
+    let graphX = (x - (canvas.width / 2)) / xScale;
+    let graphY = (y - (canvas.height / 2)) / -yScale;
     return { x: graphX, y: graphY };
 }
 
 function graphToCanvasCoordinate(x, y) {
-    var coordX = (canvas.width / 2) + (x * xScale);
-    var coordY = (canvas.height / 2) - (y * yScale);
-    return { x: coordX, y: coordY };
-}
-
-function graphToFunctionCanvasCoordinate(x, y) {
-    var coordX = (functionCanvas.width / 2) + (x * xScale) + function_xOffset;
-    var coordY = (functionCanvas.height / 2) - (y * yScale) + function_yOffset;
+    let coordX = (canvas.width / 2) + (x * xScale);
+    let coordY = (canvas.height / 2) - (y * yScale);
     return { x: coordX, y: coordY };
 }
 
 render();
-
-  
-var root = Expression.evaluate('1/x^2');
-console.log(root);
-
