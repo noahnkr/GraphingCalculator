@@ -141,8 +141,8 @@ export function clearCache(index) {
     functionCache[index] = [];
 }
 
-// shifts items in an array the amount of spaces specified. Shifts left if amount is negative,
-// right otherwise. Empty indices are left undefined 
+// Performs a non-circular array shift the amount given. Shifts left if the amount is negative, 
+// shifts right if positive. Empty indices after shift are undefined and the length is unchanged.
 function shiftAndDelete(arr, amount) {
     let newArr = new Array(arr.length);
     for (let i = 0; i < arr.length; i++) {
@@ -153,8 +153,6 @@ function shiftAndDelete(arr, amount) {
     }
   return newArr;
 }
-
-
 
 function drawGrid() {
     ctx.strokeStyle = gridColor;
@@ -262,34 +260,34 @@ function drawFunction(index) {
         
         for (let x = xRange.start; x <= xRange.end; x += increment) {
                 let y;
-                if (functionCache[index][i]) {
+                // if value is already cached
+                if (functionCache[index][i] !== undefined) {
                     y = functionCache[index][i];
                 } else {
-                    // expensive calculation
-                    y = f(x, variables);
+                    y = f(x, variables); // expensive calculation
                     calculations++;
                     functionCache[index][i] = y;
                 }
-                let coord = graphToCanvasCoordinate(x + (xOffset / xScale), y + (yOffset / yScale));
-
-                // Check if next coordinate is not too far away or is not a real number
-                if ((prevCoord !== null && Math.abs(coord.y - prevCoord.y) < canvas.height / 2) &&
-                    isFinite(y) && isFinite(prevCoord.y)) {
-                    ctx.lineTo(coord.x, coord.y);
-
-                // Otherwise, start a new stoke
-                } else {
-                    ctx.stroke()
-                    ctx.closePath();
-                    ctx.beginPath();
-                    ctx.moveTo(coord.x, coord.y);
-                }
-
-                prevCoord = coord;
                 
-                // Save starting point for closing path
-                if (startCoord === null) {
-                    startCoord = coord;
+                if (isFinite(y)) {
+                    let coord = graphToCanvasCoordinate(x + (xOffset / xScale), y + (yOffset / yScale));
+
+                    // Check if next coordinate is not too far away or is not a real number
+                    if (prevCoord !== null && Math.abs(coord.y - prevCoord.y) < canvas.height / 2) {
+                        ctx.lineTo(coord.x, coord.y);
+
+                    // Otherwise, start a new stoke
+                    } else {
+                        ctx.stroke();
+                        ctx.closePath();
+                        ctx.beginPath();
+                        ctx.moveTo(coord.x, coord.y);
+                    }
+                    prevCoord = coord;
+                    // Save starting point for closing path
+                    if (startCoord === null) {
+                        startCoord = coord;
+                    }
                 }
             i++;
         }
