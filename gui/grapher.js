@@ -229,7 +229,7 @@ function drawLabels() {
     }
 }
 
-export function drawFunctions() {
+ function drawFunctions() {
     for (let i in functions) {
         // Don't draw function if the expression is empty or is a variable
         if (functions[i].expression !== '' && !/=/.test(functions[i].expression)) {
@@ -254,9 +254,7 @@ function drawFunction(index) {
         let prevCoord = null;
 
         let f = Expression.makeFunction(functions[index].expression);
-        // index of cached y value
-        let i = 0;
-        let calculations = 0;
+        let i = 0; // index of cached y value
         
         for (let x = xRange.start; x <= xRange.end; x += increment) {
                 let y;
@@ -265,7 +263,6 @@ function drawFunction(index) {
                     y = functionCache[index][i];
                 } else {
                     y = f(x, variables); // expensive calculation
-                    calculations++;
                     functionCache[index][i] = y;
                 }
                 
@@ -295,7 +292,6 @@ function drawFunction(index) {
         ctx.stroke();
         ctx.lineTo(startCoord.x, startCoord.y);
         ctx.closePath();
-        console.log(calculations);
 
     } catch (err) {
         console.log('Error drawing function: ' + functions[index].expression);
@@ -310,7 +306,7 @@ function drawRoots(index) {
     let roots = Expression.calculateRoots(f, xRange.start, xRange.end, variables);
     
     roots.forEach(root => {
-        let coord = graphToCanvasCoordinate(root, 0);
+        let coord = graphToCanvasCoordinate(root + (xOffset / xScale), yOffset / yScale);
         ctx.beginPath();
 		ctx.fillStyle = color;
 		ctx.arc(coord.x, coord.y, 8, 0, Math.PI*2, false);

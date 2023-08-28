@@ -6,6 +6,8 @@ const h = 0.0001; // h, the smaller the value the higher the accuracy
 const tolerance = 0.000000000001; 
 
 export default class Expression {
+    // variables should be an array of objects such as:
+    // [{ a: 5 }, { b: 12 }, { c: 9.5 }]
 
     // Evaluates an expression for some value of a x, and/or a finite number of variables.
     static evaluate(expression, x, variables) {
