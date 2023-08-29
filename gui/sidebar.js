@@ -1,5 +1,5 @@
 import Expression from "../calc/expression.js";
-import { functions, variables, addFunction, drawFunctions, render, selectedFunction, setSelectedFunction, clearCache } from "./grapher.js";
+import { functions, variables, addFunction, render, selectedFunction, setSelectedFunction, clearCache } from "./grapher.js";
 
 const functionColors = {
     red: {
@@ -60,6 +60,22 @@ function updateInputs() {
     variables.length = 0;
     let inputs = document.querySelectorAll('.function-input');
     let symbols = document.querySelectorAll('.function-symbol');
+
+    // assign all variables before evaluating functions
+    for (let i = 0; i < inputs.length; i++) {
+        clearCache(i);
+        let value = inputs[i].value;
+        let selected = selectedFunction == i;
+
+        if (/[a-z]=[a-z0-9]/.test(value)) { 
+            let variable = {};
+            let name = value.split('=')[0];
+            let val = parseFloat(value.split('=')[1]);
+            variable[name] = val;
+            variables.push(variable);
+            symbols[i].src = selected ? '../assets/variable_selected.png' : '../assets/variable.png';
+        }
+    }
     
     for (let i = 0; i < inputs.length; i++) {
         let value = inputs[i].value;
@@ -69,35 +85,23 @@ function updateInputs() {
         if (value === '') {
             symbols[i].src = '';
 
-            
-        // variable
-        } else if (/[a-z]=[a-z0-9]/.test(value)) { 
-            let variable = {};
-            let name = value.split('=')[0];
-            let val = parseFloat(value.split('=')[1]);
-            variable[name] = val;;
-            variables.push(variable);
-            symbols[i].src = selected ? '../assets/variable_selected.png' : '../assets/variable.png';
         // function
-        } else {
+        } else if (!/[a-z]=[a-z0-9]/.test(value)) { 
             try {
                 Expression.evaluate(value, 0, variables);
                 symbols[i].src = selected ? '../assets/function_selected.png' : '../assets/function.png';
             } catch (err) {
                 symbols[i].src = selected ? '../assets/caution_selected.png' : '../assets/caution.png';
             }
-        }
+        } 
 
-        if (functions[i].expression !== value) {
-            clearCache(i);
-        }
+
+            
+        
         
         functions[i].expression = value;
-
-
     }
-
-    drawFunctions();
+    
     render();
 }
 
@@ -157,7 +161,6 @@ export function addInput() {
         functionContainer.removeChild(functionInput);
         functionContainer.removeChild(inputButtonsContainer);
         container.removeChild(functionContainer);
-        drawFunctions();
         render();
     });
 

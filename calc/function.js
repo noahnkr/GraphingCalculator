@@ -1,63 +1,63 @@
 export const mathFunctions = {
-    add: function(x, y) {
+    add: (x, y) => {
         return x + y;
     },
-    subtract: function(x, y) {
+    subtract: (x, y) => {
         return x - y;
     },
-    multiply: function(x, y) {
+    multiply: (x, y) => {
         return x * y;
     },
-    divide: function(x, y) {
+    divide: (x, y) => {
         return x / y;
     },
-    pow: function(x, y) {
+    pow: (x, y) => {
         return Math.pow(x, y);
     },
-    sin: function(x) {
+    sin: (x) => {
         return Math.sin(x);
     },
-    cos: function(x) {
+    cos: (x) => {
         return Math.cos(x);
     },
-    tan: function(x) {
+    tan: (x) => {
         return Math.tan(x);
     },
-    asin: function(x) {
+    asin: (x) => {
         return Math.asin(x);
     },
-    acos: function(x) {
+    acos: (x) => {
         return Math.acos(x);
     },
-    atan: function(x) {
+    atan: (x) => {
         return Math.atan(x);
     },
-    sinh: function(x) {
+    sinh: (x) => {
         return Math.sinh(x);
     },
-    cosh: function(x) {
+    cosh: (x) => {
         return Math.cosh(x);
     },
-    tanh: function(x) {
+    tanh: (x) => {
         return Math.cosh(x);
     },
-    sqrt: function(x) {
+    sqrt: (x) => {
         return Math.sqrt(x);
     },
-    cbrt: function(x) {
+    cbrt: (x) => {
         return Math.cbrt(x);
     },
-    log: function(x) {
+    log: (x) => {
         return Math.log10(x);
     },
-    ln: function(x) {
+    ln: (x) => {
         return Math.log(x);
     },
-    abs: function(x) {
+    abs: (x) => {
         return Math.abs(x);
     }
 };
 
-function convertToRadians(deg) {
+ function convertToRadians(deg) {
     return (deg * Math.PI) / 180; 
 }

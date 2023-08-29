@@ -45,7 +45,7 @@ function solveRec(node, x) {
             return x;
         }
 
-        if (node.token.value == null) {
+        if (node.token.value == undefined) {
             throw new Error('Unassigned variable: ' + node.token.show);
         }
 
@@ -65,19 +65,16 @@ function solveRec(node, x) {
     throw new Error('Unkown operation or function');
 }
 
-// variables should be an array of objects such as:
-// [{ a: 5 }, { b: 12 }, { c: 9.5 }]
 function assignVariables(node, variables) {
     if (variables === undefined) {
         return;
     }
-
+    
     if (node.token.isVariable()) {
         let name = node.token.show;
         let variableNames = variables.map(name => Object.keys(name)[0]);
         for (var i in variableNames) {
             if (name === variableNames[i]) {
-                console.log('Assigning ' + variables[i][name] + ' to ' + name);
                 node.token.value = variables[i][name];
             }
         }
