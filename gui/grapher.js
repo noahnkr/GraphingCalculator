@@ -8,7 +8,7 @@ export let selectedFunction = -1;
 const canvas = document.getElementById('graph');
 const ctx = canvas.getContext('2d');
 
-const gridSize = 100;
+let gridSize = 100;
 const gridColor = '#fff';
 const backgroundColor = '#333';
 
@@ -25,9 +25,8 @@ let yRange = {
     end: ((canvas.height / 2) / gridSize)
 };
 
-let zoomScale = 1;
-let xScale = canvas.width / (xRange.end - xRange.start) * zoomScale;
-let yScale = canvas.height / (yRange.end - yRange.start) * zoomScale;
+let xScale = canvas.width / (xRange.end - xRange.start);
+let yScale = canvas.height / (yRange.end - yRange.start);
 
 let xOffset = 0;
 let yOffset = 0;
@@ -59,8 +58,8 @@ canvas.addEventListener('mouseleave', () => {
 canvas.addEventListener('mousemove', event => {
     if (isDragging) {
         let coords = canvasToGraphCoordinate(event.clientX, event.clientY);
-        let deltaX = Math.round((coords.x - lastX) * panSensitivity * gridSize);
-        let deltaY = Math.round((coords.y - lastY) * panSensitivity * gridSize);
+        let deltaX = Math.round((coords.x - lastX) * panSensitivity * xScale);
+        let deltaY = Math.round((coords.y - lastY) * panSensitivity * yScale);
 
         posX += deltaX;
         posY -= deltaY;
@@ -76,23 +75,16 @@ canvas.addEventListener('mousemove', event => {
 
 canvas.addEventListener('wheel', event => {
     event.preventDefault();
-
-    let rect = canvas.getBoundingClientRect();
-    let mouseX = event.clientX - rect.left;
-    let mouseY = event.clientY - rect.top;
-
-    let zoomFactor = event.deltaY > 0 ? 0.95 : 1.05;
-
-    zoomScale *= zoomFactor;
-    let deltaX = (posX - mouseX) * zoomFactor + mouseX - posX;
-    let deltaY = (posY - mouseY) * zoomFactor + mouseY - posY;
-    posX += deltaX;
-    posY += deltaY; 
-
+    let zoomFactor = event.deltaY < 0 ? 0.95 : 1.05;
     xRange.start *= zoomFactor;
     xRange.end *= zoomFactor;
-    render(); 
+    yRange.start *= zoomFactor;
+    yRange.end *= zoomFactor;
+    gridSize *= zoomFactor;
 
+    updateRanges(0, 0);
+    clearCache();
+    render(); 
 });
 
 export function render() {
@@ -101,9 +93,8 @@ export function render() {
     ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.translate(posX, posY);
-    ctx.scale(zoomScale, zoomScale);
     drawGrid();
-    drawLabels();
+    //drawLabels();
     ctx.restore();
     drawFunctions();
 }
@@ -129,6 +120,9 @@ function updateRanges(deltaX, deltaY) {
     xRange.end = newEndRange.x;
     yRange.start = newStartRange.y;
     yRange.end = newEndRange.y;
+
+    xScale = canvas.width / (xRange.end - xRange.start);
+    yScale = canvas.height / (yRange.end - yRange.start);
 }
 
 function updateCache(deltaX) {
@@ -159,23 +153,52 @@ function drawGrid() {
     ctx.lineWidth = 1;
     ctx.globalAlpha = 0.5;
 
-    let startDraw = graphToCanvasCoordinate(xRange.start, yRange.start);
-    let endDraw = graphToCanvasCoordinate(xRange.end, yRange.end);
+    let startCoord = graphToCanvasCoordinate(xRange.start, yRange.start);
+    let endCoord = graphToCanvasCoordinate(xRange.end, yRange.end);
 
-    // draw x axes
-    for (let i = startDraw.x - xScale; i < endDraw.x; i += xScale) {
+    // Calculate the number of grid ticks for x and y axes
+    let tickCountX = canvas.width / gridSize;
+    let tickCountY = canvas.height / gridSize;
+
+    // Calculate the tick increment for x and y axes based on the current zoom level
+    let tickIncrementX = (xRange.end - xRange.start) / tickCountX;
+    let tickIncrementY = (yRange.end - yRange.start) / tickCountY;
+
+    // Set a threshold to reset the tick count if it goes beyond a certain limit
+    const maxTickCount = 20; // Maximum number of ticks
+    const minTickCount = 10; // Minimum number of ticks
+
+    // If the tick count is greater than the maximum threshold, reset it to the maximum
+    if (tickCountX > maxTickCount || tickCountY > maxTickCount) {
+        tickCountX = maxTickCount;
+        tickCountY = maxTickCount;
+        tickIncrementX = (xRange.end - xRange.start) / tickCountX;
+        tickIncrementY = (yRange.end - yRange.start) / tickCountY;
+    }
+    // If the tick count is less than the minimum threshold, reset it to the minimum
+    else if (tickCountX < minTickCount || tickCountY < minTickCount) {
+        tickCountX = minTickCount;
+        tickCountY = minTickCount;
+        tickIncrementX = (xRange.end - xRange.start) / tickCountX;
+        tickIncrementY = (yRange.end - yRange.start) / tickCountY;
+    }
+
+    // Draw x axes
+    for (let i = 0; i < tickCountX; i++) {
+        let drawCoord = graphToCanvasCoordinate(xRange.start + i * tickIncrementX, 0);
         ctx.beginPath();
-        ctx.moveTo((xScale - (i % xScale)) + i, startDraw.y);
-        ctx.lineTo((xScale - (i % xScale)) + i, endDraw.y);
+        ctx.moveTo(drawCoord.x, startCoord.y);
+        ctx.lineTo(drawCoord.x, endCoord.y);
         ctx.stroke();
         ctx.closePath();
     }
 
-    // draw y axes
-    for (let i = endDraw.y - xScale; i < startDraw.y; i += yScale) {
+    // Draw y axes
+    for (let i = 0; i < tickCountY; i++) {
+        let drawCoord = graphToCanvasCoordinate(0, yRange.start + i * tickIncrementY);
         ctx.beginPath();
-        ctx.moveTo(startDraw.x, (yScale - (i % yScale)) + i);
-        ctx.lineTo(endDraw.x, (yScale - (i % yScale)) + i);
+        ctx.moveTo(startCoord.x, drawCoord.y);
+        ctx.lineTo(endCoord.x, drawCoord.y);
         ctx.stroke();
         ctx.closePath();
     }
@@ -183,48 +206,49 @@ function drawGrid() {
     ctx.lineWidth = 3;
     ctx.globalAlpha = 1;
 
-    // draw x origin
+    // Draw x origin
     ctx.beginPath();
-    ctx.moveTo(startDraw.x, canvas.height / 2);
-    ctx.lineTo(endDraw.x, canvas.height / 2);
+    ctx.moveTo(startCoord.x, canvas.height / 2);
+    ctx.lineTo(endCoord.x, canvas.height / 2);
     ctx.stroke();
     ctx.closePath();
 
-    // draw y origin
+    // Draw y origin
     ctx.beginPath();
-    ctx.moveTo(canvas.width / 2, endDraw.y);
-    ctx.lineTo(canvas.width / 2, startDraw.y);
+    ctx.moveTo(canvas.width / 2, startCoord.y);
+    ctx.lineTo(canvas.width / 2, endCoord.y);
     ctx.stroke();
     ctx.closePath();
 }
+
 
 function drawLabels() {
     ctx.fillStyle = '#fff';
     ctx.globalAlpha = 1;
     ctx.font = '24px Roboto';
 
-    let startDraw = graphToCanvasCoordinate(xRange.start, yRange.start);
-    let endDraw = graphToCanvasCoordinate(xRange.end, yRange.end);
+    let startCoord = graphToCanvasCoordinate(xRange.start, yRange.start);
+    let endCoord = graphToCanvasCoordinate(xRange.end, yRange.end);
 
     // x labels
-    for (let i = startDraw.x - xScale; i < endDraw.x; i += xScale) {
+    for (let i = startCoord.x - xScale; i < endCoord.x; i += xScale) {
         
         let value = canvasToGraphCoordinate((xScale - (i % xScale)) + i, 0).x;
 
         if (value != 0) {
-            ctx.fillText(value, (xScale - (i % xScale)) + i - (gridSize / 16), (canvas.height / 2) - (gridSize / 8));
+            ctx.fillText(value, (xScale - (i % xScale)) + i - (xScale / 16), (canvas.height / 2) - (xScale / 8));
         } else {
-            ctx.fillText(value, (xScale - (i % xScale)) + i + (gridSize / 16), (canvas.height / 2) - (gridSize / 8));
+            ctx.fillText(value, (xScale - (i % xScale)) + i + (xScale / 16), (canvas.height / 2) - (xScale / 8));
         }
         
     }
 
     // y labels
-    for (let i = endDraw.y - yScale; i < startDraw.y; i += yScale) {
+    for (let i = endCoord.y - yScale; i < startCoord.y; i += yScale) {
         let value = canvasToGraphCoordinate(0, (yScale - (i % yScale)) + i).y;
         // 0 already drawn
         if (value != 0) {
-            ctx.fillText(value, canvas.width / 2 + (gridSize / 16), (yScale - (i % yScale)) + i + (gridSize / 16))
+            ctx.fillText(value, canvas.width / 2 + (yScale / 16), (yScale - (i % yScale)) + i + (yScale / 16))
         }
     }
 }
@@ -306,7 +330,7 @@ function drawRoots(index) {
     let roots = Expression.calculateRoots(f, xRange.start, xRange.end, variables);
     
     roots.forEach(root => {
-        let coord = graphToCanvasCoordinate(root + (xOffset / xScale), yOffset / yScale);
+        let coord = graphToCanvasCoordinate(root + (xOffset * xScale), yOffset * yScale);
         ctx.beginPath();
 		ctx.fillStyle = color;
 		ctx.arc(coord.x, coord.y, 8, 0, Math.PI*2, false);
