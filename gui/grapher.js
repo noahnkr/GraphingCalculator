@@ -8,7 +8,7 @@ export let selectedFunction = -1;
 const canvas = document.getElementById('graph');
 const ctx = canvas.getContext('2d');
 
-let gridSize = 100;
+let gridSize = 125;
 const gridColor = '#fff';
 const backgroundColor = '#333';
 
@@ -81,6 +81,12 @@ canvas.addEventListener('wheel', event => {
     yRange.start *= zoomFactor;
     yRange.end *= zoomFactor;
     gridSize *= zoomFactor;
+
+    if (gridSize > 250) {
+        gridSize = 125;
+    } else if (gridSize < 125) {
+        gridSize = 250;
+    }
 
     updateRanges(0, 0);
     clearCache();
@@ -156,49 +162,38 @@ function drawGrid() {
     let startCoord = graphToCanvasCoordinate(xRange.start, yRange.start);
     let endCoord = graphToCanvasCoordinate(xRange.end, yRange.end);
 
-    // Calculate the number of grid ticks for x and y axes
-    let tickCountX = canvas.width / gridSize;
-    let tickCountY = canvas.height / gridSize;
-
-    // Calculate the tick increment for x and y axes based on the current zoom level
-    let tickIncrementX = (xRange.end - xRange.start) / tickCountX;
-    let tickIncrementY = (yRange.end - yRange.start) / tickCountY;
-
-    // Set a threshold to reset the tick count if it goes beyond a certain limit
-    const maxTickCount = 20; // Maximum number of ticks
-    const minTickCount = 10; // Minimum number of ticks
-
-    // If the tick count is greater than the maximum threshold, reset it to the maximum
-    if (tickCountX > maxTickCount || tickCountY > maxTickCount) {
-        tickCountX = maxTickCount;
-        tickCountY = maxTickCount;
-        tickIncrementX = (xRange.end - xRange.start) / tickCountX;
-        tickIncrementY = (yRange.end - yRange.start) / tickCountY;
-    }
-    // If the tick count is less than the minimum threshold, reset it to the minimum
-    else if (tickCountX < minTickCount || tickCountY < minTickCount) {
-        tickCountX = minTickCount;
-        tickCountY = minTickCount;
-        tickIncrementX = (xRange.end - xRange.start) / tickCountX;
-        tickIncrementY = (yRange.end - yRange.start) / tickCountY;
-    }
-
-    // Draw x axes
-    for (let i = 0; i < tickCountX; i++) {
-        let drawCoord = graphToCanvasCoordinate(xRange.start + i * tickIncrementX, 0);
+    // Draw left half x axes
+    for (let i = canvas.width / 2; i > startCoord.x; i -= gridSize) {
         ctx.beginPath();
-        ctx.moveTo(drawCoord.x, startCoord.y);
-        ctx.lineTo(drawCoord.x, endCoord.y);
+        ctx.moveTo(i, startCoord.y);
+        ctx.lineTo(i, endCoord.y);
         ctx.stroke();
         ctx.closePath();
     }
 
-    // Draw y axes
-    for (let i = 0; i < tickCountY; i++) {
-        let drawCoord = graphToCanvasCoordinate(0, yRange.start + i * tickIncrementY);
+    // Draw right half x axes
+    for (let i = canvas.width / 2; i < endCoord.x; i += gridSize) {
         ctx.beginPath();
-        ctx.moveTo(startCoord.x, drawCoord.y);
-        ctx.lineTo(endCoord.x, drawCoord.y);
+        ctx.moveTo(i, startCoord.y);
+        ctx.lineTo(i, endCoord.y);
+        ctx.stroke();
+        ctx.closePath();
+    }
+
+    // Draw top half y axes
+    for (let i = canvas.height / 2; i > endCoord.y; i -= gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(startCoord.x, i);
+        ctx.lineTo(endCoord.x, i);
+        ctx.stroke();
+        ctx.closePath();
+    }
+
+    // Draw bottom half y axes
+    for (let i = canvas.height / 2; i < startCoord.y; i += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(startCoord.x, i);
+        ctx.lineTo(endCoord.x, i);
         ctx.stroke();
         ctx.closePath();
     }
