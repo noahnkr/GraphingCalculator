@@ -9,7 +9,7 @@ export function render() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.translate(posX, posY);
     drawGrid();
-    //drawLabels();
+    drawLabels();
     ctx.restore();
     drawFunctions();
 }

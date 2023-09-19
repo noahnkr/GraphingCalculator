@@ -25,6 +25,11 @@ export function shiftAndDelete(arr, amount) {
   return newArr;
 }
 
+export function formatDecimal(number, decimalPlaces) {
+    const factor = Math.pow(10, decimalPlaces);
+    return Math.round(number * factor) / factor;
+}
+
 export const functionColors = {
     red: {
         function: '#E57373',

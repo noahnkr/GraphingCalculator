@@ -4,6 +4,7 @@ import { xRange, xScale, yScale, xOffset, yOffset } from './graph.js';
 import { graphToCanvasCoordinate } from './util.js';
 import { functionCache } from './cache.js';
 import { selectedFunction } from './sidebar.js';
+import { render } from './grapher.js';
 
 export let functions = [];
 export let variables = [];

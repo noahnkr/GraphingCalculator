@@ -8,6 +8,10 @@ export function shiftCache(shiftAmount) {
     }
 }
 
+export function scaleCache(scaleFactor) {
+    
+}
+
 export function clearCache(index) {
     functionCache[index] = [];
 }

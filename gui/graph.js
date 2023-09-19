@@ -1,4 +1,4 @@
-import { graphToCanvasCoordinate, canvasToGraphCoordinate } from "./util.js";
+import { graphToCanvasCoordinate, canvasToGraphCoordinate, formatDecimal } from "./util.js";
 import { shiftCache, clearCache } from "./cache.js";
 import { render } from "./grapher.js";
  
@@ -9,6 +9,7 @@ const gridColor = '#fff';
 export const backgroundColor = '#333';
 
 let gridSize = 125;
+let tickIncrement = 1;
 const panSensitivity = 1;
 
 export let xRange = {
@@ -42,9 +43,10 @@ export function drawGrid() {
 
     let startCoord = graphToCanvasCoordinate(xRange.start, yRange.start);
     let endCoord = graphToCanvasCoordinate(xRange.end, yRange.end);
+    let originCoord = graphToCanvasCoordinate(0, 0);
 
     // Draw left half x axes
-    for (let i = canvas.width / 2; i > startCoord.x; i -= gridSize) {
+    for (let i = originCoord.x; i > startCoord.x; i -= gridSize) {
         ctx.beginPath();
         ctx.moveTo(i, startCoord.y);
         ctx.lineTo(i, endCoord.y);
@@ -53,7 +55,7 @@ export function drawGrid() {
     }
 
     // Draw right half x axes
-    for (let i = canvas.width / 2; i < endCoord.x; i += gridSize) {
+    for (let i = originCoord.x; i < endCoord.x; i += gridSize) {
         ctx.beginPath();
         ctx.moveTo(i, startCoord.y);
         ctx.lineTo(i, endCoord.y);
@@ -62,7 +64,7 @@ export function drawGrid() {
     }
 
     // Draw top half y axes
-    for (let i = canvas.height / 2; i > endCoord.y; i -= gridSize) {
+    for (let i = originCoord.y; i > endCoord.y; i -= gridSize) {
         ctx.beginPath();
         ctx.moveTo(startCoord.x, i);
         ctx.lineTo(endCoord.x, i);
@@ -71,7 +73,7 @@ export function drawGrid() {
     }
 
     // Draw bottom half y axes
-    for (let i = canvas.height / 2; i < startCoord.y; i += gridSize) {
+    for (let i = originCoord.y; i < startCoord.y; i += gridSize) {
         ctx.beginPath();
         ctx.moveTo(startCoord.x, i);
         ctx.lineTo(endCoord.x, i);
@@ -84,18 +86,19 @@ export function drawGrid() {
 
     // Draw x origin
     ctx.beginPath();
-    ctx.moveTo(startCoord.x, canvas.height / 2);
-    ctx.lineTo(endCoord.x, canvas.height / 2);
+    ctx.moveTo(startCoord.x, originCoord.y);
+    ctx.lineTo(endCoord.x, originCoord.y);
     ctx.stroke();
     ctx.closePath();
 
     // Draw y origin
     ctx.beginPath();
-    ctx.moveTo(canvas.width / 2, startCoord.y);
-    ctx.lineTo(canvas.width / 2, endCoord.y);
+    ctx.moveTo(originCoord.x, startCoord.y);
+    ctx.lineTo(originCoord.x, endCoord.y);
     ctx.stroke();
     ctx.closePath();
 }
+
 
 
 export function drawLabels() {
@@ -105,28 +108,58 @@ export function drawLabels() {
 
     let startCoord = graphToCanvasCoordinate(xRange.start, yRange.start);
     let endCoord = graphToCanvasCoordinate(xRange.end, yRange.end);
+    let originCoord = graphToCanvasCoordinate(0, 0);
 
-    // x labels
-    for (let i = startCoord.x - xScale; i < endCoord.x; i += xScale) {
-        
-        let value = canvasToGraphCoordinate((xScale - (i % xScale)) + i, 0).x;
-
-        if (value != 0) {
-            ctx.fillText(value, (xScale - (i % xScale)) + i - (xScale / 16), (canvas.height / 2) - (xScale / 8));
-        } else {
-            ctx.fillText(value, (xScale - (i % xScale)) + i + (xScale / 16), (canvas.height / 2) - (xScale / 8));
+    // Draw left half x labels
+    for (let i = originCoord.x; i > startCoord.x; i -= gridSize) {
+        if (i == originCoord.x) {
+            ctx.fillText('0', originCoord.x - 22, originCoord.y + 25);
+            continue;
         }
-        
+
+        let tickNumber = (originCoord.x - i) / gridSize;
+        let value = formatDecimal(-(tickNumber * tickIncrement), 5);
+        let valueLength = `${value}`.length;
+        ctx.fillText(value, i - (valueLength * 6), originCoord.y + 25)
     }
 
-    // y labels
-    for (let i = endCoord.y - yScale; i < startCoord.y; i += yScale) {
-        let value = canvasToGraphCoordinate(0, (yScale - (i % yScale)) + i).y;
-        // 0 already drawn
-        if (value != 0) {
-            ctx.fillText(value, canvas.width / 2 + (yScale / 16), (yScale - (i % yScale)) + i + (yScale / 16))
+    // Draw right half x labels
+    for (let i = originCoord.x; i < endCoord.x; i += gridSize) {
+        if (i == originCoord.x) {
+            continue;
         }
+
+        let tickNumber = (i - originCoord.x) / gridSize;
+        let value = formatDecimal(tickNumber * tickIncrement, 5);
+        let valueLength = `${value}`.length;
+        ctx.fillText(value, i - (valueLength * 6), originCoord.y + 25)
     }
+
+    // Draw top half y labels
+    for (let i = originCoord.y; i > endCoord.y; i -= gridSize) {
+        if (i == originCoord.y) {
+            continue;
+        }
+
+        let tickNumber = (originCoord.y - i) / gridSize;
+        let value = formatDecimal(tickNumber * tickIncrement, 5);
+        let valueLength = `${value}`.length;
+        ctx.fillText(value, originCoord.x - 12 - (valueLength * 12),  i + 10)
+    }
+
+    // Draw bottom half y labels
+    for (let i = originCoord.y; i < startCoord.y; i += gridSize) {
+        if (i == originCoord.y) {
+            continue;
+        }
+
+        let tickNumber = (i - originCoord.y) / gridSize;
+        let value = formatDecimal(-(tickNumber * tickIncrement), 5);
+        let valueLength = `${value}`.length;
+        ctx.fillText(value, originCoord.x - 10 - (valueLength * 10),  i + 10)
+    }
+
+    
 }
 
 function updateRanges(deltaX, deltaY) {
@@ -193,6 +226,8 @@ canvas.addEventListener('mousemove', event => {
 canvas.addEventListener('wheel', event => {
     event.preventDefault();
     let zoomFactor = event.deltaY > 0 ? 0.95 : 1.05;
+    console.log(event.clientX, event.clientY);
+
     xRange.start *= zoomFactor;
     xRange.end *= zoomFactor;
     yRange.start *= zoomFactor;
@@ -201,11 +236,22 @@ canvas.addEventListener('wheel', event => {
 
     if (gridSize > 250) {
         gridSize = 125;
+        if (tickIncrement > 1) {
+            tickIncrement /= tickIncrement % 2 == 0 ? 2 : 2.5;
+        } else {
+            tickIncrement /= 2 % tickIncrement == 0 ? 2 : 2.5;
+        }
+
+
     } else if (gridSize < 125) {
         gridSize = 250;
+        if (tickIncrement > 1) {
+            tickIncrement *= tickIncrement % 2 == 0 ? 2.5 : 2;
+        } else {
+            tickIncrement *= 2 % tickIncrement == 0 ? 2 : 2.5;
+        }
     }
-
-    updateRanges(0, 0);
+    
     updateScales()
     clearCache();
     render(); 

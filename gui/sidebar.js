@@ -4,11 +4,7 @@ import { clearCache } from "./cache.js";
 import { functionColors } from "./util.js";
 import { render } from "./grapher.js";
 
-export const selectedFunction = -1;
-
-function setSelectedFunction(index) {
-    selectedFunction = index;
-}
+export let selectedFunction = -1;
 
 const addInputButton = document.getElementById('add-input-button');
 addInputButton.addEventListener('click', () => { addInput() });
@@ -87,12 +83,12 @@ function addInput() {
     functionInput.value = functions[index].expression;
     functionInput.oninput = updateInputs;
     functionInput.addEventListener('focus', () => {
-        setSelectedFunction(index);
+        selectedFunction = index;
         functionLabel.style.backgroundColor = '#ccc';
         updateInputs();
     })
     functionInput.addEventListener('blur', () => {
-        setSelectedFunction(-1);
+        selectedFunction = -1;
         functionLabel.style.backgroundColor = '#555';
         updateInputs();
     })
@@ -122,8 +118,3 @@ function addInput() {
     functionContainer.appendChild(inputButtonsContainer);
     container.appendChild(functionContainer);
 }
-
-
-
-
-
