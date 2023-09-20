@@ -8,7 +8,7 @@ export const ctx = canvas.getContext('2d');
 const gridColor = '#fff';
 export const backgroundColor = '#333';
 
-let gridSize = 125;
+let gridSize = 100;
 let tickIncrement = 1;
 const panSensitivity = 1;
 
@@ -117,8 +117,8 @@ export function drawLabels() {
             continue;
         }
 
-        let tickNumber = (originCoord.x - i) / gridSize;
-        let value = formatDecimal(-(tickNumber * tickIncrement), 5);
+        let tickIndex = (originCoord.x - i) / gridSize;
+        let value = formatDecimal(-(tickIndex * tickIncrement), 5);
         let valueLength = `${value}`.length;
         ctx.fillText(value, i - (valueLength * 6), originCoord.y + 25)
     }
@@ -129,8 +129,8 @@ export function drawLabels() {
             continue;
         }
 
-        let tickNumber = (i - originCoord.x) / gridSize;
-        let value = formatDecimal(tickNumber * tickIncrement, 5);
+        let tickIndex = (i - originCoord.x) / gridSize;
+        let value = formatDecimal(tickIndex * tickIncrement, 5);
         let valueLength = `${value}`.length;
         ctx.fillText(value, i - (valueLength * 6), originCoord.y + 25)
     }
@@ -141,8 +141,8 @@ export function drawLabels() {
             continue;
         }
 
-        let tickNumber = (originCoord.y - i) / gridSize;
-        let value = formatDecimal(tickNumber * tickIncrement, 5);
+        let tickIndex = (originCoord.y - i) / gridSize;
+        let value = formatDecimal(tickIndex * tickIncrement, 5);
         let valueLength = `${value}`.length;
         ctx.fillText(value, originCoord.x - 12 - (valueLength * 12),  i + 10)
     }
@@ -153,8 +153,8 @@ export function drawLabels() {
             continue;
         }
 
-        let tickNumber = (i - originCoord.y) / gridSize;
-        let value = formatDecimal(-(tickNumber * tickIncrement), 5);
+        let tickIndex = (i - originCoord.y) / gridSize;
+        let value = formatDecimal(-(tickIndex * tickIncrement), 5);
         let valueLength = `${value}`.length;
         ctx.fillText(value, originCoord.x - 10 - (valueLength * 10),  i + 10)
     }
@@ -234,17 +234,18 @@ canvas.addEventListener('wheel', event => {
     yRange.end *= zoomFactor;
     gridSize *= zoomFactor;
 
-    if (gridSize > 250) {
-        gridSize = 125;
+    // zoom in
+    if (gridSize > 200) {
+        gridSize = 100;
         if (tickIncrement > 1) {
             tickIncrement /= tickIncrement % 2 == 0 ? 2 : 2.5;
         } else {
             tickIncrement /= 2 % tickIncrement == 0 ? 2 : 2.5;
         }
 
-
-    } else if (gridSize < 125) {
-        gridSize = 250;
+    // zoom out
+    } else if (gridSize < 100) {
+        gridSize = 200;
         if (tickIncrement > 1) {
             tickIncrement *= tickIncrement % 2 == 0 ? 2.5 : 2;
         } else {
@@ -253,7 +254,6 @@ canvas.addEventListener('wheel', event => {
     }
     
     updateScales()
-    clearCache();
     render(); 
 });
 
