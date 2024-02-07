@@ -224,6 +224,10 @@ canvas.addEventListener('mousemove', event => {
 });
 
 canvas.addEventListener('wheel', event => {
+    /*
+    
+    TODO: Need to fix functions moving on zoom
+
     event.preventDefault();
     let zoomFactor = event.deltaY > 0 ? 0.95 : 1.05;
     console.log(event.clientX, event.clientY);
@@ -254,7 +258,7 @@ canvas.addEventListener('wheel', event => {
     }
     
     updateScales()
-    render(); 
+    render(); */
 });
 
 

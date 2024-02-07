@@ -11,7 +11,9 @@ export function shiftCache(shiftAmount) {
 export function scaleCache(scaleFactor) {
     for (let i = 0; i < functionCache.length; i++) {
         for (let j = 0; j < functionCache[i].length; j++) {
-            functionCache[i][j] *= scaleFactor;
+            if (functionCache[i][j] !== undefined) {
+                functionCache[i][j] *= scaleFactor;
+            }
         }
     }
     
